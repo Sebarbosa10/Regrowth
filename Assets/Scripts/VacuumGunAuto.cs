@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using Oculus.Interaction;
 
-[RequireComponent(typeof(AudioSource))]
+
 public class VacuumGunAuto : MonoBehaviour
 {
     [SerializeField] private Grabbable grabbable;
