@@ -1,10 +1,7 @@
 using UnityEngine;
 using Oculus.Interaction;
 
-/// <summary>
-/// Pistola de plasma para el juego de limpieza submarina.
-/// Dispara esferas de plasma que desintegran objetos metálicos al contacto.
-/// </summary>
+
 public class PlasmaGun : MonoBehaviour
 {
     [Header("Referencias")]
@@ -23,13 +20,12 @@ public class PlasmaGun : MonoBehaviour
     [SerializeField] private AudioSource _audioSource;
     [SerializeField] private AudioClip _fireClip;
 
-    // Cache de todos los colliders del arma para que la bala los ignore al spawnar
+    
     private Collider[] _ownColliders;
     private float _nextFireTime;
     private bool _triggerWasPressed;
 
-    // ?????????????????????????????????????????????
-    #region Unity Callbacks
+   
 
     private void Reset()
     {
@@ -39,9 +35,8 @@ public class PlasmaGun : MonoBehaviour
 
     private void Awake()
     {
-        // Cacheamos todos los colliders del arma (incluyendo hijos) una sola vez
-        _ownColliders = GetComponentsInChildren<Collider>();
-        Debug.Log($"[PlasmaGun] Colliders cacheados: {_ownColliders.Length}");
+        
+        _ownColliders = GetComponentsInChildren<Collider>(includeInactive: true);
     }
 
     private void Update()
@@ -50,6 +45,7 @@ public class PlasmaGun : MonoBehaviour
 
         bool triggerPressed = IsIndexTriggerPressed();
 
+        
         if (triggerPressed && !_triggerWasPressed)
             TryFire();
 
@@ -63,22 +59,18 @@ public class PlasmaGun : MonoBehaviour
         Gizmos.DrawRay(_muzzlePoint.position, _muzzlePoint.forward * 2f);
     }
 
-    #endregion
-
-    // ?????????????????????????????????????????????
-    #region Fire Logic
+    
 
     private void TryFire()
     {
         if (Time.time < _nextFireTime) return;
         if (_plasmaBallPrefab == null || _muzzlePoint == null)
         {
-            Debug.LogWarning("[PlasmaGun] Falta asignar PlasmaBallPrefab o MuzzlePoint en el Inspector.");
+            Debug.LogWarning("[PlasmaGun] Falta asignar PlasmaBallPrefab o MuzzlePoint.");
             return;
         }
 
         _nextFireTime = Time.time + _fireRate;
-
         SpawnPlasmaBall();
         PlayFireSound();
     }
@@ -86,8 +78,6 @@ public class PlasmaGun : MonoBehaviour
     private void SpawnPlasmaBall()
     {
         PlasmaBall ball = Instantiate(_plasmaBallPrefab, _muzzlePoint.position, _muzzlePoint.rotation);
-
-        // Le pasamos nuestros colliders para que los ignore al nacer
         ball.Initialize(_ballSpeed, _ownColliders);
     }
 
@@ -97,10 +87,7 @@ public class PlasmaGun : MonoBehaviour
         _audioSource.PlayOneShot(_fireClip);
     }
 
-    #endregion
-
-    // ?????????????????????????????????????????????
-    #region Input
+   
 
     private bool IsGrabbed() =>
         _grabbable != null && _grabbable.SelectingPointsCount > 0;
@@ -112,5 +99,5 @@ public class PlasmaGun : MonoBehaviour
         return left > _triggerThreshold || right > _triggerThreshold;
     }
 
-    #endregion
+   
 }
