@@ -9,10 +9,12 @@ public class WeaponHolster : MonoBehaviour
     [SerializeField] private string weaponTag = "Weapon";
 
     private GameObject storedWeapon = null;
+    private bool isLocked = false; // bloquea el holster durante transiciones
 
     private void Update()
     {
-        // Busca armas cercanas que no estén siendo agarradas
+        if (isLocked) return;
+
         Collider[] hits = Physics.OverlapSphere(transform.position, snapRadius);
 
         foreach (Collider hit in hits)
@@ -22,26 +24,35 @@ public class WeaponHolster : MonoBehaviour
 
             GameObject weaponRoot = hit.transform.root.gameObject;
 
-            if (weaponRoot == storedWeapon)
-                continue;
-
             Grabbable grab = weaponRoot.GetComponentInChildren<Grabbable>();
             if (grab == null)
                 continue;
 
-            // Si nadie la agarra y no hay arma guardada, la guarda
             if (grab.SelectingPointsCount == 0 && storedWeapon == null)
             {
                 StoreWeapon(weaponRoot);
             }
 
-            // Si alguien la agarra y era la guardada, la libera
             if (grab.SelectingPointsCount > 0 && weaponRoot == storedWeapon)
             {
                 ReleaseWeapon();
             }
         }
     }
+
+    public void ForceStore(GameObject weapon)
+    {
+        // Libera lo que había antes
+        if (storedWeapon != null)
+        {
+            ReleaseWeapon();
+        }
+
+        StoreWeapon(weapon);
+    }
+
+    public void Lock() => isLocked = true;
+    public void Unlock() => isLocked = false;
 
     private void StoreWeapon(GameObject weapon)
     {
@@ -60,7 +71,7 @@ public class WeaponHolster : MonoBehaviour
         weapon.transform.localRotation = Quaternion.identity;
     }
 
-    private void ReleaseWeapon()
+    public void ReleaseWeapon()
     {
         if (storedWeapon == null) return;
 
