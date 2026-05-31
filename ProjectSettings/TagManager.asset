@@ -5,6 +5,7 @@ TagManager:
   serializedVersion: 2
   tags:
   - Vacuumable
+  - Weapon
   layers:
   - Default
   - TransparentFX
