@@ -6,89 +6,90 @@ public class WeaponHolster : MonoBehaviour
     [Header("Settings")]
     [SerializeField] private Transform snapPoint;
     [SerializeField] private float snapRadius = 0.3f;
-    [SerializeField] private string weaponTag = "Weapon";
+    [SerializeField] private float maxDistance = 2.0f;
+    [SerializeField] private Transform playerTransform;
 
-    private GameObject storedWeapon = null;
-    private bool isLocked = false; // bloquea el holster durante transiciones
+    private GameObject trackedWeapon = null;
+    private bool isStored = false;
+    private bool hasBeenGrabbed = false;
 
     private void Update()
     {
-        if (isLocked) return;
+        if (playerTransform == null || trackedWeapon == null)
+        {
+            if (trackedWeapon == null) TryFindAndBindWeapon();
+            return;
+        }
 
+        Grabbable grab = trackedWeapon.GetComponentInChildren<Grabbable>();
+        bool isBeingHeld = (grab != null && grab.SelectingPointsCount > 0);
+
+        if (isBeingHeld)
+        {
+            hasBeenGrabbed = true;
+            // SI LA AGARRAMOS: Forzamos la desconexión total del holster
+            if (isStored)
+            {
+                trackedWeapon.transform.SetParent(null);
+                isStored = false;
+            }
+        }
+        else
+        {
+            // SI NO LA ESTAMOS AGARRANDO:
+            // Si está lejos y ya fue usada, la traemos de vuelta
+            if (hasBeenGrabbed && !isStored)
+            {
+                float distToPlayer = Vector3.Distance(playerTransform.position, trackedWeapon.transform.position);
+
+                if (distToPlayer > maxDistance)
+                {
+                    ForceReturnToHolster();
+                }
+                // Si la acercamos al holster, se guarda
+                else if (Vector3.Distance(transform.position, trackedWeapon.transform.position) < snapRadius)
+                {
+                    PlaceWeaponInHolster();
+                }
+            }
+        }
+    }
+
+    private void TryFindAndBindWeapon()
+    {
         Collider[] hits = Physics.OverlapSphere(transform.position, snapRadius);
-
         foreach (Collider hit in hits)
         {
-            if (!hit.CompareTag(weaponTag))
-                continue;
-
-            GameObject weaponRoot = hit.transform.root.gameObject;
-
-            Grabbable grab = weaponRoot.GetComponentInChildren<Grabbable>();
-            if (grab == null)
-                continue;
-
-            if (grab.SelectingPointsCount == 0 && storedWeapon == null)
+            if (hit.CompareTag("Weapon"))
             {
-                StoreWeapon(weaponRoot);
-            }
-
-            if (grab.SelectingPointsCount > 0 && weaponRoot == storedWeapon)
-            {
-                ReleaseWeapon();
+                trackedWeapon = hit.transform.root.gameObject;
+                PlaceWeaponInHolster();
+                return;
             }
         }
     }
 
-    public void ForceStore(GameObject weapon)
+    private void PlaceWeaponInHolster()
     {
-        // Libera lo que había antes
-        if (storedWeapon != null)
-        {
-            ReleaseWeapon();
-        }
+        isStored = true;
 
-        StoreWeapon(weapon);
-    }
+        // Al guardar, el arma DEBE ser hija del snapPoint
+        trackedWeapon.transform.SetParent(snapPoint);
+        trackedWeapon.transform.localPosition = Vector3.zero;
+        trackedWeapon.transform.localRotation = Quaternion.identity;
 
-    public void Lock() => isLocked = true;
-    public void Unlock() => isLocked = false;
-
-    private void StoreWeapon(GameObject weapon)
-    {
-        storedWeapon = weapon;
-
-        Rigidbody rb = weapon.GetComponent<Rigidbody>();
+        Rigidbody rb = trackedWeapon.GetComponent<Rigidbody>();
         if (rb != null)
         {
             rb.isKinematic = true;
-            rb.velocity = Vector3.zero;
-            rb.angularVelocity = Vector3.zero;
         }
-
-        weapon.transform.SetParent(snapPoint);
-        weapon.transform.localPosition = Vector3.zero;
-        weapon.transform.localRotation = Quaternion.identity;
     }
 
-    public void ReleaseWeapon()
+    private void ForceReturnToHolster()
     {
-        if (storedWeapon == null) return;
-
-        storedWeapon.transform.SetParent(null);
-
-        Rigidbody rb = storedWeapon.GetComponent<Rigidbody>();
-        if (rb != null)
-        {
-            rb.isKinematic = false;
-        }
-
-        storedWeapon = null;
-    }
-
-    private void OnDrawGizmosSelected()
-    {
-        Gizmos.color = Color.green;
-        Gizmos.DrawWireSphere(transform.position, snapRadius);
+        // Teletransporte primero, luego guardamos
+        trackedWeapon.transform.position = snapPoint.position;
+        trackedWeapon.transform.rotation = snapPoint.rotation;
+        PlaceWeaponInHolster();
     }
 }
