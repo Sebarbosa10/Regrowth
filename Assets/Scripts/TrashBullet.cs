@@ -1,6 +1,4 @@
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
 [RequireComponent(typeof(Rigidbody))]
 public class TrashBullet : MonoBehaviour
@@ -11,6 +9,7 @@ public class TrashBullet : MonoBehaviour
     private ObjectPool<TrashBullet> _pool;
     private float _lifetime;
     private float _timer;
+    private bool _returned; // ← guard contra doble ReturnToPool
 
     private void Awake() => _rb = GetComponent<Rigidbody>();
 
@@ -23,6 +22,7 @@ public class TrashBullet : MonoBehaviour
         _lifetime = lifetime;
         _pool = pool;
         _timer = 0f;
+        _returned = false; // ← resetear al reutilizar del pool
     }
 
     private void Update()
@@ -36,14 +36,18 @@ public class TrashBullet : MonoBehaviour
         if (((1 << col.gameObject.layer) & _trashLayer) != 0)
         {
             AudioSource.PlayClipAtPoint(_impactSound, transform.position);
-            col.gameObject.GetComponent<TrashObject>()?.OnHit();
+            col.gameObject.GetComponent<TrashObject>()?.Collect(); // ← unificado en Collect
         }
         ReturnToPool();
     }
 
     private void ReturnToPool()
     {
+        if (_returned) return; // ← si ya se devolvió, no hacer nada
+        _returned = true;
+
         _rb.velocity = Vector3.zero;
+        _rb.angularVelocity = Vector3.zero;
         _pool.Return(this);
     }
 }
