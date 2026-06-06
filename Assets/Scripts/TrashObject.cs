@@ -7,7 +7,11 @@ public class TrashObject : MonoBehaviour
 {
     [SerializeField] private TrashEventChannel eventChannel;
 
-    public void OnHit() { }
+    public void OnHit() {
+
+        eventChannel?.RaiseEvent();
+        gameObject.SetActive(false);
+    }
 
     public void Collect()
     {
