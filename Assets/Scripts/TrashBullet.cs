@@ -46,6 +46,7 @@ public class TrashBullet : MonoBehaviour
 
         if (((1 << col.gameObject.layer) & _trashLayer) != 0)
         {
+            Debug.Log($"layer obj: {col.gameObject.layer} | mask value: {_trashLayer.value} | resultado: {(1 << col.gameObject.layer) & _trashLayer.value}");
             AudioSource.PlayClipAtPoint(_impactSound, transform.position);
             col.gameObject.GetComponentInParent<TrashObject>()?.Collect();
         }
