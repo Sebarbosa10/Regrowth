@@ -113,9 +113,6 @@ public class StageManager : MonoBehaviour
             playerRig.position = stageSpawnPoints[stage].position;
         }
     }
-
-  
-
     private void DeactivateAllTrash()
     {
         foreach (var t in stage1Trash) if (t != null) t.SetActive(false);
