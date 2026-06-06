@@ -1,17 +1,21 @@
 using UnityEngine;
 using Oculus.Interaction;
 
-public class WeaponHolster : MonoBehaviour
+
+public class WeaponHolster : MonoBehaviour, IUpdatable
 {
     [Header("Settings")]
     [SerializeField] private Transform snapPoint;
     [SerializeField] private float snapRadius = 0.3f;
     [SerializeField] private float maxDistance = 2.0f;
     [SerializeField] private Transform playerTransform;
-    [SerializeField] private GameObject weaponObject; // arrastrá el Vacuum acá
+    [SerializeField] private GameObject weaponObject;
+
+    [SerializeField] private CustomUpdateManager updateManager;
 
     private bool isStored = false;
     private bool hasBeenGrabbed = false;
+    private bool isLocked = false;
 
     private void Start()
     {
@@ -22,9 +26,19 @@ public class WeaponHolster : MonoBehaviour
         }
     }
 
-    private void Update()
+    private void OnEnable()
     {
-        if (playerTransform == null || weaponObject == null) return;
+        if (updateManager != null) updateManager.Register(this);
+    }
+
+    private void OnDisable()
+    {
+        if (updateManager != null) updateManager.Unregister(this);
+    }
+
+    public void Tick(float deltaTime)
+    {
+        if (isLocked || playerTransform == null || weaponObject == null) return;
 
         Grabbable grab = weaponObject.GetComponentInChildren<Grabbable>();
         bool isBeingHeld = (grab != null && grab.SelectingPointsCount > 0);
@@ -57,6 +71,17 @@ public class WeaponHolster : MonoBehaviour
         }
     }
 
+    public void Lock() => isLocked = true;
+    public void Unlock() => isLocked = false;
+
+    public void ForceStore(GameObject weapon)
+    {
+        weaponObject = weapon;
+        WeaponMarker marker = weapon.GetComponent<WeaponMarker>();
+        if (marker != null) marker.myHolster = this;
+        ForceReturnToHolster();
+    }
+
     private void PlaceWeaponInHolster()
     {
         Rigidbody rb = weaponObject.GetComponent<Rigidbody>();
@@ -68,6 +93,7 @@ public class WeaponHolster : MonoBehaviour
         }
 
         isStored = true;
+        hasBeenGrabbed = false;
         weaponObject.transform.SetParent(snapPoint);
         weaponObject.transform.localPosition = Vector3.zero;
         weaponObject.transform.localRotation = Quaternion.identity;
@@ -75,6 +101,7 @@ public class WeaponHolster : MonoBehaviour
 
     private void ForceReturnToHolster()
     {
+        weaponObject.transform.SetParent(null);
         weaponObject.transform.position = snapPoint.position;
         weaponObject.transform.rotation = snapPoint.rotation;
         PlaceWeaponInHolster();

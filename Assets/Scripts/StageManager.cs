@@ -94,6 +94,9 @@ public class StageManager : MonoBehaviour
                 break;
         }
 
+        // ? esta es la única línea nueva
+        DialogueManager.Instance?.PlayDialoguesForStage(stage);
+
         // Activar basura del stage
         if (currentTrash != null)
         {
@@ -110,6 +113,8 @@ public class StageManager : MonoBehaviour
             playerRig.position = stageSpawnPoints[stage].position;
         }
     }
+
+  
 
     private void DeactivateAllTrash()
     {

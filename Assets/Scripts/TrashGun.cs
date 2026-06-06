@@ -2,11 +2,12 @@ using System.Collections;
 using UnityEngine;
 using Oculus.Interaction;
 
-public class TrashGun : MonoBehaviour
+
+public class TrashGun : MonoBehaviour, IUpdatable
 {
     [Header("References")]
     [SerializeField] private Grabbable grabbable;
-    [SerializeField] private Transform muzzle; 
+    [SerializeField] private Transform muzzle;
 
     [Header("Bullet Settings")]
     [SerializeField] private GameObject bulletPrefab;
@@ -14,21 +15,38 @@ public class TrashGun : MonoBehaviour
     [SerializeField] private float bulletLifetime = 3f;
 
     [Header("Fire Settings")]
-    [SerializeField] private float fireRate = 0.3f; 
+    [SerializeField] private float fireRate = 0.3f;
     [SerializeField] private float triggerThreshold = 0.7f;
 
     [Header("Layer")]
     [SerializeField] private LayerMask trashLayer;
 
+    [Header("Audio")]
+    [SerializeField] private AudioSource audioSource;
+    [SerializeField] private AudioClip shootSound;      // sonido al disparar
+    [SerializeField] private AudioClip impactSound;     // sonido al impactar basura
+
     private float lastFireTime = -999f;
     private bool triggerWasPressed = false;
+
+    [SerializeField] private CustomUpdateManager updateManager;
 
     private void Reset()
     {
         grabbable = GetComponent<Grabbable>();
     }
 
-    private void Update()
+    private void OnEnable()
+    {
+        if (updateManager != null) updateManager.Register(this);
+    }
+
+    private void OnDisable()
+    {
+        if (updateManager != null) updateManager.Unregister(this);
+    }
+
+    public void Tick(float deltaTime)
     {
         if (grabbable == null || muzzle == null || bulletPrefab == null)
             return;
@@ -38,7 +56,6 @@ public class TrashGun : MonoBehaviour
 
         bool triggerPressed = IsIndexTriggerPressed();
 
-        
         if (triggerPressed && !triggerWasPressed)
         {
             if (Time.time >= lastFireTime + fireRate)
@@ -53,19 +70,21 @@ public class TrashGun : MonoBehaviour
 
     private void Fire()
     {
+        // Sonido de disparo
+        if (audioSource != null && shootSound != null)
+            audioSource.PlayOneShot(shootSound);
+
         GameObject bullet = Instantiate(bulletPrefab, muzzle.position, muzzle.rotation);
 
         Rigidbody rb = bullet.GetComponent<Rigidbody>();
         if (rb != null)
-        {
             rb.velocity = muzzle.forward * bulletSpeed;
-        }
 
-        
         TrashBullet trashBullet = bullet.GetComponent<TrashBullet>();
         if (trashBullet != null)
         {
             trashBullet.SetTrashLayer(trashLayer);
+            trashBullet.SetImpactSound(impactSound); // le pasamos el sonido de impacto
         }
 
         Destroy(bullet, bulletLifetime);
