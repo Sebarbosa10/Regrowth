@@ -12,19 +12,18 @@ public class WeaponHolster : MonoBehaviour, IUpdatable
     [SerializeField] private GameObject weaponObject;
 
     [SerializeField] private CustomUpdateManager updateManager;
+    private Grabbable _cachedGrabbable;
 
     private bool isStored = false;
     private bool hasBeenGrabbed = false;
     private bool isLocked = false;
-
-    private void Start()
+    private void CacheComponents()
     {
         if (weaponObject != null)
-        {
-            WeaponMarker marker = weaponObject.GetComponent<WeaponMarker>();
-            if (marker != null) marker.myHolster = this;
-        }
+            _cachedGrabbable = weaponObject.GetComponentInChildren<Grabbable>();
     }
+
+    private void Start() => CacheComponents();
 
     private void OnEnable()
     {
@@ -41,7 +40,7 @@ public class WeaponHolster : MonoBehaviour, IUpdatable
         if (isLocked || playerTransform == null || weaponObject == null) return;
 
         Grabbable grab = weaponObject.GetComponentInChildren<Grabbable>();
-        bool isBeingHeld = (grab != null && grab.SelectingPointsCount > 0);
+        bool isBeingHeld = _cachedGrabbable != null && _cachedGrabbable.SelectingPointsCount > 0;
 
         if (isBeingHeld)
         {
@@ -77,6 +76,7 @@ public class WeaponHolster : MonoBehaviour, IUpdatable
     public void ForceStore(GameObject weapon)
     {
         weaponObject = weapon;
+        CacheComponents();
         WeaponMarker marker = weapon.GetComponent<WeaponMarker>();
         if (marker != null) marker.myHolster = this;
         ForceReturnToHolster();

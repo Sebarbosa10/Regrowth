@@ -1,125 +1,150 @@
 using System.Collections;
 using UnityEngine;
 
+
+[System.Serializable]
+public class StageData
+{
+    public string stageName;
+    public GameObject[] trashObjects;
+    public GameObject[] weaponsToEnable;
+    public GameObject[] weaponsToDisable;
+}
 public class StageManager : MonoBehaviour
 {
-    public static StageManager Instance;
 
-    [Header("Stage Zones (posiciones del jugador)")]
-    [SerializeField] private Transform[] stageSpawnPoints; // 3 puntos en el mar
-
-    [Header("Basura por Stage")]
-    [SerializeField] private GameObject[] stage1Trash;
-    [SerializeField] private GameObject[] stage2Trash;
-    [SerializeField] private GameObject[] stage3Trash;
-
-    [Header("Armas")]
-    [SerializeField] private GameObject vacuumGun;
-    [SerializeField] private GameObject trashGun;
-
-    [Header("References")]
-    [SerializeField] private Transform playerRig; // tu OVRCameraRig
-    [SerializeField] private FadeController fadeController;
-
-    private int currentStage = 0;
-    private int trashRemaining = 0;
+    public static StageManager Instance { get; private set; }
 
     private void Awake()
     {
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
         Instance = this;
+    }
+
+    [Header("Stages")]
+    [SerializeField] private StageData[] stages;           
+
+    [Header("Stage Zones")]
+    [SerializeField] private Transform[] stageSpawnPoints;
+
+    [Header("References")]
+    [SerializeField] private Transform playerRig;
+    [SerializeField] private FadeController fadeController;
+
+    [Header("Event Channel")]
+    [SerializeField] private TrashEventChannel trashChannel; 
+
+    private int _currentStage = 0;
+    private int _trashRemaining = 0;
+    private void OnEnable()
+    {
+        if (trashChannel != null)
+            trashChannel.OnTrashCollected += HandleTrashCollected;
+    }
+
+    private void OnDisable()
+    {
+        if (trashChannel != null)
+            trashChannel.OnTrashCollected -= HandleTrashCollected;
     }
 
     private void Start()
     {
         LoadStage(0);
     }
-
-    public void OnTrashDestroyed()
+    private void HandleTrashCollected()
     {
-        trashRemaining--;
-
-        if (trashRemaining <= 0)
-        {
+        _trashRemaining--;
+        if (_trashRemaining <= 0)
             StartCoroutine(TransitionToNextStage());
-        }
     }
 
     private IEnumerator TransitionToNextStage()
     {
-        // Fade out (cerrar ojos)
         yield return StartCoroutine(fadeController.FadeOut());
 
-        currentStage++;
+        _currentStage++;
 
-        if (currentStage >= 3)
+        if (_currentStage >= stages.Length)
         {
-            // Juego terminado
-            Debug.Log("¡Juego completado!");
+            OnGameCompleted();
             yield break;
         }
 
-        LoadStage(currentStage);
+        LoadStage(_currentStage);
 
         yield return new WaitForSeconds(0.5f);
-
-        // Fade in (abrir ojos)
         yield return StartCoroutine(fadeController.FadeIn());
     }
 
-    private void LoadStage(int stage)
+    private void OnGameCompleted()
     {
-        // Desactivar toda la basura primero
+       
+        Debug.Log("¡Juego completado!");
+    }
+
+
+    private void LoadStage(int stageIndex)
+    {
+        if (stageIndex < 0 || stageIndex >= stages.Length)
+        {
+            Debug.LogWarning($"StageManager: índice de stage inválido ({stageIndex})");
+            return;
+        }
+
         DeactivateAllTrash();
 
-        GameObject[] currentTrash = null;
+        StageData data = stages[stageIndex];
 
-        switch (stage)
+        ActivateTrash(data);
+        ConfigureWeapons(data);
+        TeleportPlayer(stageIndex);
+
+        DialogueManager.Instance?.PlayDialoguesForStage(stageIndex);
+    }
+
+    private void ActivateTrash(StageData data)
+    {
+        _trashRemaining = 0;
+        if (data.trashObjects == null) return;
+
+        foreach (GameObject trash in data.trashObjects)
         {
-            case 0:
-                currentTrash = stage1Trash;
-                vacuumGun.SetActive(true);
-                trashGun.SetActive(false);
-                break;
-
-            case 1:
-                currentTrash = stage2Trash;
-                vacuumGun.SetActive(true);
-                trashGun.SetActive(true);
-                break;
-
-            case 2:
-                currentTrash = stage3Trash;
-                vacuumGun.SetActive(true);
-                trashGun.SetActive(true);
-                break;
-        }
-
-        // ? esta es la única línea nueva
-        DialogueManager.Instance?.PlayDialoguesForStage(stage);
-
-        // Activar basura del stage
-        if (currentTrash != null)
-        {
-            trashRemaining = currentTrash.Length;
-            foreach (GameObject trash in currentTrash)
-            {
-                trash.SetActive(true);
-            }
-        }
-
-        // Teletransportar jugador
-        if (stageSpawnPoints.Length > stage)
-        {
-            playerRig.position = stageSpawnPoints[stage].position;
+            if (trash == null) continue;
+            trash.SetActive(true);
+            _trashRemaining++;
         }
     }
 
-  
+    private void ConfigureWeapons(StageData data)
+    {
+        if (data.weaponsToEnable != null)
+            foreach (var w in data.weaponsToEnable)
+                if (w != null) w.SetActive(true);
+
+        if (data.weaponsToDisable != null)
+            foreach (var w in data.weaponsToDisable)
+                if (w != null) w.SetActive(false);
+    }
+
+    private void TeleportPlayer(int stageIndex)
+    {
+        if (stageSpawnPoints != null && stageIndex < stageSpawnPoints.Length)
+            playerRig.position = stageSpawnPoints[stageIndex].position;
+    }
 
     private void DeactivateAllTrash()
     {
-        foreach (var t in stage1Trash) if (t != null) t.SetActive(false);
-        foreach (var t in stage2Trash) if (t != null) t.SetActive(false);
-        foreach (var t in stage3Trash) if (t != null) t.SetActive(false);
+    
+        foreach (StageData data in stages)
+        {
+            if (data.trashObjects == null) continue;
+            foreach (GameObject trash in data.trashObjects)
+                if (trash != null) trash.SetActive(false);
+        }
     }
 }

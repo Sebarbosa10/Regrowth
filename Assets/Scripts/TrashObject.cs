@@ -5,12 +5,13 @@ using UnityEngine;
 
 public class TrashObject : MonoBehaviour
 {
-    private void OnDestroy()
+    [SerializeField] private TrashEventChannel eventChannel;
+
+    public void OnHit() { }
+
+    public void Collect()
     {
-        // Avisa al StageManager cuando se destruye
-        if (StageManager.Instance != null)
-        {
-            StageManager.Instance.OnTrashDestroyed();
-        }
+        eventChannel?.RaiseEvent(); 
+        gameObject.SetActive(false); 
     }
 }

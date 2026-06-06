@@ -2,33 +2,48 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-
+[RequireComponent(typeof(Rigidbody))]
 public class TrashBullet : MonoBehaviour
 {
-    private LayerMask trashLayer;
-    private AudioClip impactSound;
+    private Rigidbody _rb;
+    private LayerMask _trashLayer;
+    private AudioClip _impactSound;
+    private ObjectPool<TrashBullet> _pool;
+    private float _lifetime;
+    private float _timer;
 
-    public void SetTrashLayer(LayerMask layer)
+    private void Awake() => _rb = GetComponent<Rigidbody>();
+
+    public void Initialize(Vector3 velocity, LayerMask layer, AudioClip impact,
+                           float lifetime, ObjectPool<TrashBullet> pool)
     {
-        trashLayer = layer;
+        _rb.velocity = velocity;
+        _trashLayer = layer;
+        _impactSound = impact;
+        _lifetime = lifetime;
+        _pool = pool;
+        _timer = 0f;
     }
 
-    public void SetImpactSound(AudioClip clip)
+    private void Update()
     {
-        impactSound = clip;
+        _timer += Time.deltaTime;
+        if (_timer >= _lifetime) ReturnToPool();
     }
 
-    private void OnCollisionEnter(Collision collision)
+    private void OnCollisionEnter(Collision col)
     {
-        if (((1 << collision.gameObject.layer) & trashLayer) != 0)
+        if (((1 << col.gameObject.layer) & _trashLayer) != 0)
         {
-            // Reproducir sonido de impacto en la posición de la basura
-            if (impactSound != null)
-                AudioSource.PlayClipAtPoint(impactSound, transform.position);
-
-            Destroy(collision.gameObject);
+            AudioSource.PlayClipAtPoint(_impactSound, transform.position);
+            col.gameObject.GetComponent<TrashObject>()?.OnHit();
         }
+        ReturnToPool();
+    }
 
-        Destroy(gameObject);
+    private void ReturnToPool()
+    {
+        _rb.velocity = Vector3.zero;
+        _pool.Return(this);
     }
 }

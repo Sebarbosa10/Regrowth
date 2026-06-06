@@ -1,95 +1,64 @@
-using System.Collections;
+﻿using System.Collections;
 using UnityEngine;
 using Oculus.Interaction;
-
 
 public class TrashGun : MonoBehaviour, IUpdatable
 {
     [Header("References")]
     [SerializeField] private Grabbable grabbable;
     [SerializeField] private Transform muzzle;
+    [SerializeField] private CustomUpdateManager updateManager;
 
     [Header("Bullet Settings")]
-    [SerializeField] private GameObject bulletPrefab;
+    [SerializeField] private TrashBullet bulletPrefab;
     [SerializeField] private float bulletSpeed = 20f;
     [SerializeField] private float bulletLifetime = 3f;
+    [SerializeField] private int poolInitialSize = 10;
 
     [Header("Fire Settings")]
     [SerializeField] private float fireRate = 0.3f;
     [SerializeField] private float triggerThreshold = 0.7f;
 
-    [Header("Layer")]
+    [Header("Layer & Audio")]
     [SerializeField] private LayerMask trashLayer;
-
-    [Header("Audio")]
     [SerializeField] private AudioSource audioSource;
-    [SerializeField] private AudioClip shootSound;      // sonido al disparar
-    [SerializeField] private AudioClip impactSound;     // sonido al impactar basura
+    [SerializeField] private AudioClip shootSound;
+    [SerializeField] private AudioClip impactSound;
 
-    private float lastFireTime = -999f;
-    private bool triggerWasPressed = false;
+    private float _lastFireTime = -999f;
+    private bool _triggerWasPressed;
+    private ObjectPool<TrashBullet> _bulletPool;
 
-    [SerializeField] private CustomUpdateManager updateManager;
-
-    private void Reset()
+    private void Start()
     {
-        grabbable = GetComponent<Grabbable>();
+        _bulletPool = new ObjectPool<TrashBullet>(bulletPrefab, poolInitialSize, transform);
     }
 
-    private void OnEnable()
-    {
-        if (updateManager != null) updateManager.Register(this);
-    }
-
-    private void OnDisable()
-    {
-        if (updateManager != null) updateManager.Unregister(this);
-    }
+    private void OnEnable() => updateManager?.Register(this);
+    private void OnDisable() => updateManager?.Unregister(this);
 
     public void Tick(float deltaTime)
     {
-        if (grabbable == null || muzzle == null || bulletPrefab == null)
-            return;
+        if (grabbable == null || muzzle == null) return;
+        if (grabbable.SelectingPointsCount <= 0) return;
 
-        if (grabbable.SelectingPointsCount <= 0)
-            return;
+        bool triggerPressed = IsIndexTriggerPressed(); 
 
-        bool triggerPressed = IsIndexTriggerPressed();
-
-        if (triggerPressed && !triggerWasPressed)
+        if (triggerPressed && !_triggerWasPressed && Time.time >= _lastFireTime + fireRate)
         {
-            if (Time.time >= lastFireTime + fireRate)
-            {
-                Fire();
-                lastFireTime = Time.time;
-            }
+            Fire();
+            _lastFireTime = Time.time;
         }
 
-        triggerWasPressed = triggerPressed;
+        _triggerWasPressed = triggerPressed;
     }
 
     private void Fire()
     {
-        // Sonido de disparo
-        if (audioSource != null && shootSound != null)
-            audioSource.PlayOneShot(shootSound);
-
-        GameObject bullet = Instantiate(bulletPrefab, muzzle.position, muzzle.rotation);
-
-        Rigidbody rb = bullet.GetComponent<Rigidbody>();
-        if (rb != null)
-            rb.velocity = muzzle.forward * bulletSpeed;
-
-        TrashBullet trashBullet = bullet.GetComponent<TrashBullet>();
-        if (trashBullet != null)
-        {
-            trashBullet.SetTrashLayer(trashLayer);
-            trashBullet.SetImpactSound(impactSound); // le pasamos el sonido de impacto
-        }
-
-        Destroy(bullet, bulletLifetime);
+        audioSource.PlayOneShot(shootSound);
+        TrashBullet bullet = _bulletPool.Get(muzzle.position, muzzle.rotation);
+        bullet.Initialize(muzzle.forward * bulletSpeed, trashLayer, impactSound, bulletLifetime, _bulletPool);
     }
-
     private bool IsIndexTriggerPressed()
     {
         float left = OVRInput.Get(OVRInput.Axis1D.PrimaryIndexTrigger, OVRInput.Controller.LTouch);

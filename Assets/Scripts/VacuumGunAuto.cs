@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using Oculus.Interaction;
@@ -17,8 +17,11 @@ public class VacuumGunAuto : MonoBehaviour, IUpdatable
 
     [Header("Audio")]
     [SerializeField] private AudioSource audioSource;
-    [SerializeField] private AudioClip vacuumLoopSound;   // sonido continuo al aspirar
-    [SerializeField] private AudioClip trashAbsorbSound;  // sonido al destruir basura
+    [SerializeField] private AudioClip vacuumLoopSound; 
+    [SerializeField] private AudioClip trashAbsorbSound; 
+    private readonly Collider[] _hitBuffer = new Collider[20];
+    private float _vacuumTickInterval = 0.05f;
+    private float _vacuumTimer;
 
     [SerializeField] private CustomUpdateManager updateManager;
 
@@ -42,46 +45,38 @@ public class VacuumGunAuto : MonoBehaviour, IUpdatable
 
     public void Tick(float deltaTime)
     {
-        if (grabbable == null || suctionPoint == null)
-        {
-            StopVacuumSound();
-            return;
-        }
-
+        if (grabbable == null || suctionPoint == null) { StopVacuumSound(); return; }
         if (grabbable.SelectingPointsCount <= 0 || !IsIndexTriggerPressed())
-        {
-            StopVacuumSound();
-            return;
-        }
+        { StopVacuumSound(); return; }
 
-        // Sonido loop de aspiradora
         PlayVacuumSound();
 
-        Collider[] hits = Physics.OverlapSphere(
-            suctionPoint.position,
-            suctionRadius,
-            vacuumLayer,
-            QueryTriggerInteraction.Ignore
-        );
+  
+        _vacuumTimer += deltaTime;
+        if (_vacuumTimer < _vacuumTickInterval) return;
+        _vacuumTimer = 0f;
 
-        foreach (Collider hit in hits)
+   
+        int count = Physics.OverlapSphereNonAlloc(
+            suctionPoint.position, suctionRadius, _hitBuffer, vacuumLayer,
+            QueryTriggerInteraction.Ignore);
+
+        for (int i = 0; i < count; i++)
         {
-            Rigidbody rb = hit.attachedRigidbody;
-            if (rb == null || rb.isKinematic)
-                continue;
+            Rigidbody rb = _hitBuffer[i].attachedRigidbody;
+            if (rb == null || rb.isKinematic) continue;
 
             Vector3 dir = suctionPoint.position - rb.position;
-            float distance = dir.magnitude;
+            float sqrDist = dir.sqrMagnitude; 
 
-            if (distance <= destroyDistance)
+            if (sqrDist <= destroyDistance * destroyDistance)
             {
                 PlayAbsorbSound();
-                Destroy(rb.gameObject);
+                _hitBuffer[i].GetComponent<TrashObject>()?.Collect(); 
                 continue;
             }
 
-            dir.Normalize();
-            rb.AddForce(dir * suctionForce, ForceMode.Acceleration);
+            rb.AddForce(dir.normalized * suctionForce, ForceMode.Acceleration);
         }
     }
 
