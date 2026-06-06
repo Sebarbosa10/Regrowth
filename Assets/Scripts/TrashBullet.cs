@@ -42,10 +42,12 @@ public class TrashBullet : MonoBehaviour
 
     private void OnCollisionEnter(Collision col)
     {
+        Debug.Log($"Bullet pegó a: {col.gameObject.name}, layer: {LayerMask.LayerToName(col.gameObject.layer)}");
+
         if (((1 << col.gameObject.layer) & _trashLayer) != 0)
         {
             AudioSource.PlayClipAtPoint(_impactSound, transform.position);
-            col.gameObject.GetComponent<TrashObject>()?.Collect(); // ← unificado en Collect
+            col.gameObject.GetComponentInParent<TrashObject>()?.Collect();
         }
         ReturnToPool();
     }
