@@ -6,7 +6,7 @@ public class TrashObject : MonoBehaviour
 
     public void Collect()
     {
-        eventChannel?.RaiseEvent();
         gameObject.SetActive(false);
+        eventChannel?.RaiseEvent();
     }
 }
