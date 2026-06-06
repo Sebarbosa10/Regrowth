@@ -23,6 +23,7 @@ public class ObjectPool<T> where T : Component
     public T Get(Vector3 position, Quaternion rotation)
     {
         T obj = _pool.Count > 0 ? _pool.Pop() : GameObject.Instantiate(_prefab, _parent);
+        obj.transform.SetParent(null); 
         obj.transform.SetPositionAndRotation(position, rotation);
         obj.gameObject.SetActive(true);
         return obj;
@@ -31,6 +32,7 @@ public class ObjectPool<T> where T : Component
     public void Return(T obj)
     {
         obj.gameObject.SetActive(false);
+        obj.transform.SetParent(_parent); 
         _pool.Push(obj);
     }
 }

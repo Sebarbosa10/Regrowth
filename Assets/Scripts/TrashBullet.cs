@@ -14,15 +14,24 @@ public class TrashBullet : MonoBehaviour
     private void Awake() => _rb = GetComponent<Rigidbody>();
 
     public void Initialize(Vector3 velocity, LayerMask layer, AudioClip impact,
-                           float lifetime, ObjectPool<TrashBullet> pool)
+                       float lifetime, ObjectPool<TrashBullet> pool)
     {
-        _rb.velocity = velocity;
         _trashLayer = layer;
         _impactSound = impact;
         _lifetime = lifetime;
         _pool = pool;
         _timer = 0f;
-        _returned = false; // ← resetear al reutilizar del pool
+        _returned = false;
+
+      
+        _rb.velocity = Vector3.zero;
+        _rb.angularVelocity = Vector3.zero;
+        _rb.isKinematic = false;
+
+   
+        _rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
+
+        _rb.velocity = velocity; 
     }
 
     private void Update()
@@ -43,9 +52,11 @@ public class TrashBullet : MonoBehaviour
 
     private void ReturnToPool()
     {
-        if (_returned) return; // ← si ya se devolvió, no hacer nada
+        if (_returned) return;
         _returned = true;
 
+        _rb.collisionDetectionMode = CollisionDetectionMode.Discrete; 
+        _rb.isKinematic = true; 
         _rb.velocity = Vector3.zero;
         _rb.angularVelocity = Vector3.zero;
         _pool.Return(this);
