@@ -6,7 +6,10 @@ TagManager:
   tags:
   - Vacuumable
   - Weapon
-  - Trash
+  - Metal
+  - Organic
+  - Plastic
+  - Glass
   layers:
   - Default
   - TransparentFX
@@ -15,9 +18,9 @@ TagManager:
   - Water
   - UI
   - 
-  - Vacuum
+  - Vacuumble
+  - Shootable
   - 
-  - Metal
   - 
   - 
   - 

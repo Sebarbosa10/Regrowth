@@ -19,22 +19,19 @@ public class TrashGun : MonoBehaviour, IUpdatable
     [SerializeField] private float triggerThreshold = 0.7f;
 
     [Header("Layer")]
-    [SerializeField] private LayerMask trashLayer;
+    [SerializeField] private LayerMask shootableLayer; 
 
     [Header("Audio")]
     [SerializeField] private AudioSource audioSource;
-    [SerializeField] private AudioClip shootSound;      // sonido al disparar
-    [SerializeField] private AudioClip impactSound;     // sonido al impactar basura
+    [SerializeField] private AudioClip shootSound;
+    [SerializeField] private AudioClip impactSound;
 
     private float lastFireTime = -999f;
     private bool triggerWasPressed = false;
 
     [SerializeField] private CustomUpdateManager updateManager;
 
-    private void Reset()
-    {
-        grabbable = GetComponent<Grabbable>();
-    }
+    private void Reset() { grabbable = GetComponent<Grabbable>(); }
 
     private void OnEnable()
     {
@@ -70,7 +67,6 @@ public class TrashGun : MonoBehaviour, IUpdatable
 
     private void Fire()
     {
-        // Sonido de disparo
         if (audioSource != null && shootSound != null)
             audioSource.PlayOneShot(shootSound);
 
@@ -83,8 +79,8 @@ public class TrashGun : MonoBehaviour, IUpdatable
         TrashBullet trashBullet = bullet.GetComponent<TrashBullet>();
         if (trashBullet != null)
         {
-            trashBullet.SetTrashLayer(trashLayer);
-            trashBullet.SetImpactSound(impactSound); // le pasamos el sonido de impacto
+            trashBullet.SetShootableLayer(shootableLayer);
+            trashBullet.SetImpactSound(impactSound);
         }
 
         Destroy(bullet, bulletLifetime);

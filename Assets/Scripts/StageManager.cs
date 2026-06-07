@@ -6,7 +6,7 @@ public class StageManager : MonoBehaviour
     public static StageManager Instance;
 
     [Header("Stage Zones (posiciones del jugador)")]
-    [SerializeField] private Transform[] stageSpawnPoints; // 3 puntos en el mar
+    [SerializeField] private Transform[] stageSpawnPoints; 
 
     [Header("Basura por Stage")]
     [SerializeField] private GameObject[] stage1Trash;
@@ -18,7 +18,7 @@ public class StageManager : MonoBehaviour
     [SerializeField] private GameObject trashGun;
 
     [Header("References")]
-    [SerializeField] private Transform playerRig; // tu OVRCameraRig
+    [SerializeField] private Transform playerRig; 
     [SerializeField] private FadeController fadeController;
 
     private int currentStage = 0;
@@ -46,14 +46,14 @@ public class StageManager : MonoBehaviour
 
     private IEnumerator TransitionToNextStage()
     {
-        // Fade out (cerrar ojos)
+        
         yield return StartCoroutine(fadeController.FadeOut());
 
         currentStage++;
 
         if (currentStage >= 3)
         {
-            // Juego terminado
+            
             Debug.Log("¡Juego completado!");
             yield break;
         }
@@ -62,13 +62,13 @@ public class StageManager : MonoBehaviour
 
         yield return new WaitForSeconds(0.5f);
 
-        // Fade in (abrir ojos)
+        
         yield return StartCoroutine(fadeController.FadeIn());
     }
 
     private void LoadStage(int stage)
     {
-        // Desactivar toda la basura primero
+        
         DeactivateAllTrash();
 
         GameObject[] currentTrash = null;
@@ -94,10 +94,10 @@ public class StageManager : MonoBehaviour
                 break;
         }
 
-        // ? esta es la única línea nueva
+        
         DialogueManager.Instance?.PlayDialoguesForStage(stage);
 
-        // Activar basura del stage
+        
         if (currentTrash != null)
         {
             trashRemaining = currentTrash.Length;
@@ -107,7 +107,7 @@ public class StageManager : MonoBehaviour
             }
         }
 
-        // Teletransportar jugador
+        
         if (stageSpawnPoints.Length > stage)
         {
             playerRig.position = stageSpawnPoints[stage].position;
