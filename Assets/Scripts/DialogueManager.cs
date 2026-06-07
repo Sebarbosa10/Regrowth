@@ -16,7 +16,7 @@ public class DialogueManager : MonoBehaviour
     [SerializeField] private AudioClip[] stage3Dialogues;
 
     [Header("Settings")]
-    [SerializeField] private float delayBetweenClips = 1f; // pausa entre audios
+    [SerializeField] private float delayBetweenClips = 1f; 
 
     private Coroutine currentDialogue;
 
@@ -27,7 +27,7 @@ public class DialogueManager : MonoBehaviour
 
     public void PlayDialoguesForStage(int stage)
     {
-        // Si hay algo reproduciéndose, lo para
+        
         if (currentDialogue != null)
         {
             StopCoroutine(currentDialogue);
@@ -58,7 +58,7 @@ public class DialogueManager : MonoBehaviour
             audioSource.clip = clip;
             audioSource.Play();
 
-            // Espera que termine el clip
+            
             yield return new WaitForSeconds(clip.length + delayBetweenClips);
         }
 

@@ -7,7 +7,7 @@ public class TrashObject : MonoBehaviour
 {
     private void OnDestroy()
     {
-        // Avisa al StageManager cuando se destruye
+        
         if (StageManager.Instance != null)
         {
             StageManager.Instance.OnTrashDestroyed();

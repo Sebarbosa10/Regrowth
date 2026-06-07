@@ -3,7 +3,6 @@ using UnityEngine;
 using Oculus.Interaction;
 
 
-
 public class TrashGun : MonoBehaviour, IUpdatable
 {
     [Header("References")]
@@ -19,8 +18,8 @@ public class TrashGun : MonoBehaviour, IUpdatable
     [SerializeField] private float fireRate = 0.3f;
     [SerializeField] private float triggerThreshold = 0.7f;
 
-    [Header("Tag")]
-    [SerializeField] private string targetTag = "MetalGarbage";
+    [Header("Layer")]
+    [SerializeField] private LayerMask shootableLayer; 
 
     [Header("Audio")]
     [SerializeField] private AudioSource audioSource;
@@ -32,10 +31,7 @@ public class TrashGun : MonoBehaviour, IUpdatable
 
     [SerializeField] private CustomUpdateManager updateManager;
 
-    private void Reset()
-    {
-        grabbable = GetComponent<Grabbable>();
-    }
+    private void Reset() { grabbable = GetComponent<Grabbable>(); }
 
     private void OnEnable()
     {
@@ -83,7 +79,7 @@ public class TrashGun : MonoBehaviour, IUpdatable
         TrashBullet trashBullet = bullet.GetComponent<TrashBullet>();
         if (trashBullet != null)
         {
-            trashBullet.SetTargetTag(targetTag);
+            trashBullet.SetShootableLayer(shootableLayer);
             trashBullet.SetImpactSound(impactSound);
         }
 

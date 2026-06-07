@@ -2,17 +2,14 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-
-
-
 public class TrashBullet : MonoBehaviour
 {
     private AudioClip impactSound;
-    private string targetTag = "MetalGarbage";
+    private LayerMask shootableLayer;
 
-    public void SetTargetTag(string tag)
+    public void SetShootableLayer(LayerMask layer)
     {
-        targetTag = tag;
+        shootableLayer = layer;
     }
 
     public void SetImpactSound(AudioClip clip)
@@ -22,21 +19,17 @@ public class TrashBullet : MonoBehaviour
 
     private void OnCollisionEnter(Collision collision)
     {
-        // Ignorar basura de aspiradora
-        if (collision.gameObject.CompareTag("VacuumGarbage"))
+        
+        if (((1 << collision.gameObject.layer) & shootableLayer) == 0)
         {
             Physics.IgnoreCollision(collision.collider, GetComponent<Collider>());
             return;
         }
 
-        if (collision.gameObject.CompareTag(targetTag))
-        {
-            if (impactSound != null)
-                AudioSource.PlayClipAtPoint(impactSound, transform.position);
+        if (impactSound != null)
+            AudioSource.PlayClipAtPoint(impactSound, transform.position);
 
-            Destroy(collision.gameObject);
-        }
-
+        Destroy(collision.gameObject);
         Destroy(gameObject);
     }
 }
