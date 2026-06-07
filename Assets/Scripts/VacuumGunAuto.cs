@@ -3,22 +3,23 @@ using System.Collections.Generic;
 using UnityEngine;
 using Oculus.Interaction;
 
-
 public class VacuumGunAuto : MonoBehaviour, IUpdatable
 {
     [SerializeField] private Grabbable grabbable;
     [SerializeField] private Transform suctionPoint;
 
-    [SerializeField] private float suctionRadius = 3f;
-    [SerializeField] private float suctionForce = 20f;
+    [Header("Cone Settings")]
+    [SerializeField] private float coneRange = 3f;        // largo del cono
+    [SerializeField] private float coneAngle = 30f;       // apertura del cono en grados
+    [SerializeField] private float suctionSpeed = 3f;     // velocidad de atracción
     [SerializeField] private float destroyDistance = 0.2f;
-    [SerializeField] private LayerMask vacuumLayer;
+
     [SerializeField] private float triggerThreshold = 0.7f;
 
     [Header("Audio")]
     [SerializeField] private AudioSource audioSource;
-    [SerializeField] private AudioClip vacuumLoopSound;   // sonido continuo al aspirar
-    [SerializeField] private AudioClip trashAbsorbSound;  // sonido al destruir basura
+    [SerializeField] private AudioClip vacuumLoopSound;
+    [SerializeField] private AudioClip trashAbsorbSound;
 
     [SerializeField] private CustomUpdateManager updateManager;
 
@@ -54,42 +55,51 @@ public class VacuumGunAuto : MonoBehaviour, IUpdatable
             return;
         }
 
-        // Sonido loop de aspiradora
         PlayVacuumSound();
 
         Collider[] hits = Physics.OverlapSphere(
             suctionPoint.position,
-            suctionRadius,
-            vacuumLayer,
+            coneRange,
+            Physics.AllLayers,
             QueryTriggerInteraction.Ignore
         );
 
         foreach (Collider hit in hits)
         {
-            Rigidbody rb = hit.attachedRigidbody;
-            if (rb == null || rb.isKinematic)
+            if (!hit.CompareTag("VacuumGarbage"))
                 continue;
 
-            Vector3 dir = suctionPoint.position - rb.position;
-            float distance = dir.magnitude;
+            // Debugs temporales para ver qué detecta
+            Debug.Log($"Detectado: {hit.gameObject.name} | Distancia: {Vector3.Distance(suctionPoint.position, hit.transform.position)} | Ángulo: {Vector3.Angle(suctionPoint.forward, hit.transform.position - suctionPoint.position)}");
+
+            Vector3 dirToTrash = hit.transform.position - suctionPoint.position;
+            float distance = dirToTrash.magnitude;
+            float angle = Vector3.Angle(suctionPoint.forward, dirToTrash);
+
+            if (angle > coneAngle)
+            {
+                Debug.Log($"Fuera del cono: {hit.gameObject.name} angulo={angle} max={coneAngle}");
+                continue;
+            }
 
             if (distance <= destroyDistance)
             {
                 PlayAbsorbSound();
-                Destroy(rb.gameObject);
+                Destroy(hit.gameObject);
                 continue;
             }
 
-            dir.Normalize();
-            rb.AddForce(dir * suctionForce, ForceMode.Acceleration);
+            hit.transform.position = Vector3.MoveTowards(
+                hit.transform.position,
+                suctionPoint.position,
+                suctionSpeed * deltaTime
+            );
         }
     }
 
     private void PlayVacuumSound()
     {
-        if (audioSource == null || vacuumLoopSound == null) return;
-        if (isVacuuming) return;
-
+        if (audioSource == null || vacuumLoopSound == null || isVacuuming) return;
         audioSource.clip = vacuumLoopSound;
         audioSource.loop = true;
         audioSource.Play();
@@ -120,8 +130,22 @@ public class VacuumGunAuto : MonoBehaviour, IUpdatable
     private void OnDrawGizmosSelected()
     {
         if (suctionPoint == null) return;
+
+        // Dibujar el cono en el editor
         Gizmos.color = Color.cyan;
-        Gizmos.DrawWireSphere(suctionPoint.position, suctionRadius);
+        float halfAngle = coneAngle * Mathf.Deg2Rad;
+        Vector3 forward = suctionPoint.forward * coneRange;
+        Vector3 right = Quaternion.Euler(0, coneAngle, 0) * suctionPoint.forward * coneRange;
+        Vector3 left = Quaternion.Euler(0, -coneAngle, 0) * suctionPoint.forward * coneRange;
+        Vector3 up = Quaternion.Euler(coneAngle, 0, 0) * suctionPoint.forward * coneRange;
+        Vector3 down = Quaternion.Euler(-coneAngle, 0, 0) * suctionPoint.forward * coneRange;
+
+        Gizmos.DrawRay(suctionPoint.position, forward);
+        Gizmos.DrawRay(suctionPoint.position, right);
+        Gizmos.DrawRay(suctionPoint.position, left);
+        Gizmos.DrawRay(suctionPoint.position, up);
+        Gizmos.DrawRay(suctionPoint.position, down);
+
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(suctionPoint.position, destroyDistance);
     }
