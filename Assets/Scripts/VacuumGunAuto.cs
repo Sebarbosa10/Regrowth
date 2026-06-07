@@ -1,8 +1,6 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using Oculus.Interaction;
-
 
 public class VacuumGunAuto : MonoBehaviour, IUpdatable
 {
@@ -17,7 +15,7 @@ public class VacuumGunAuto : MonoBehaviour, IUpdatable
     [SerializeField] private float triggerThreshold = 0.7f;
 
     [Header("Layer")]
-    [SerializeField] private LayerMask vacuumableLayer; 
+    [SerializeField] private LayerMask vacuumableLayer;
 
     [Header("Audio")]
     [SerializeField] private AudioSource audioSource;
@@ -68,6 +66,8 @@ public class VacuumGunAuto : MonoBehaviour, IUpdatable
 
         foreach (Collider hit in hits)
         {
+            if (hit == null || hit.gameObject == null) continue;
+
             Vector3 dirToTrash = hit.transform.position - suctionPoint.position;
             float distance = dirToTrash.magnitude;
             float angle = Vector3.Angle(suctionPoint.forward, dirToTrash);
@@ -77,6 +77,10 @@ public class VacuumGunAuto : MonoBehaviour, IUpdatable
 
             if (distance <= destroyDistance)
             {
+              
+                if (TrashDiscoveryManager.Instance != null)
+                    TrashDiscoveryManager.Instance.OnTrashCollected(hit.gameObject);
+
                 PlayAbsorbSound(hit.gameObject.tag);
                 Destroy(hit.gameObject);
                 continue;
