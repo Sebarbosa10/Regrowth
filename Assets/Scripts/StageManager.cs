@@ -73,26 +73,26 @@ public class StageManager : MonoBehaviour
 
         GameObject[] currentTrash = null;
 
-        switch (stage)
-        {
-            case 0:
-                currentTrash = stage1Trash;
-                vacuumGun.SetActive(true);
-                trashGun.SetActive(false);
-                break;
+        //switch (stage)
+        //{
+        //    case 0:
+        //        currentTrash = stage1Trash;
+        //        vacuumGun.SetActive(true);
+        //        trashGun.SetActive(false);
+        //        break;
 
-            case 1:
-                currentTrash = stage2Trash;
-                vacuumGun.SetActive(true);
-                trashGun.SetActive(true);
-                break;
+        //    case 1:
+        //        currentTrash = stage2Trash;
+        //        vacuumGun.SetActive(true);
+        //        trashGun.SetActive(true);
+        //        break;
 
-            case 2:
-                currentTrash = stage3Trash;
-                vacuumGun.SetActive(true);
-                trashGun.SetActive(true);
-                break;
-        }
+        //    case 2:
+        //        currentTrash = stage3Trash;
+        //        vacuumGun.SetActive(true);
+        //        trashGun.SetActive(true);
+        //        break;
+        //}
 
         
         DialogueManager.Instance?.PlayDialoguesForStage(stage);
