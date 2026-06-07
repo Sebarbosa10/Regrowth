@@ -6,18 +6,23 @@ public class TrashGun : MonoBehaviour, IUpdatable
 {
     public enum FireMode
     {
-        Single = 0,
-        Burst = 1,
-        Auto = 2,
-        Spread = 3
+        Single = 0,  // Plastic
+        Burst = 1,  // Glass
+        Auto = 2,  // Organic
+        Spread = 3   // Metal
     }
 
     [Header("References")]
     [SerializeField] private Grabbable grabbable;
     [SerializeField] private Transform muzzle;
 
+    [Header("Bullet Prefabs (uno por modo)")]
+    [SerializeField] private GameObject bulletSingle;   // Plastic
+    [SerializeField] private GameObject bulletBurst;    // Glass
+    [SerializeField] private GameObject bulletAuto;     // Organic
+    [SerializeField] private GameObject bulletSpread;   // Metal
+
     [Header("Bullet Settings")]
-    [SerializeField] private GameObject bulletPrefab;
     [SerializeField] private float bulletSpeed = 20f;
     [SerializeField] private float bulletLifetime = 3f;
 
@@ -43,10 +48,13 @@ public class TrashGun : MonoBehaviour, IUpdatable
     [SerializeField] private AudioClip modeSwitchSound;
 
     [Header("Mode Switch Button")]
-    [SerializeField] private OVRInput.Button modeSwitchButton = OVRInput.Button.One; // A por defecto
+    [SerializeField] private OVRInput.Button modeSwitchButton = OVRInput.Button.One;
 
     [Header("Debug")]
     [SerializeField] private FireMode currentMode = FireMode.Single;
+
+    // Mapeo fijo modo → tag
+    private static readonly string[] modeTargetTags = { "Plastic", "Glass", "Organic", "Metal" };
 
     private float lastFireTime = -999f;
     private bool triggerWasPressed = false;
@@ -69,7 +77,7 @@ public class TrashGun : MonoBehaviour, IUpdatable
 
     public void Tick(float deltaTime)
     {
-        if (grabbable == null || muzzle == null || bulletPrefab == null)
+        if (grabbable == null || muzzle == null)
             return;
 
         if (grabbable.SelectingPointsCount <= 0)
@@ -89,13 +97,13 @@ public class TrashGun : MonoBehaviour, IUpdatable
 
         if (switchPressed && !switchWasPressed)
         {
-            int next = ((int)currentMode + 1) % System.Enum.GetValues(typeof(FireMode)).Length;
+            int next = ((int)currentMode + 1) % modeTargetTags.Length;
             currentMode = (FireMode)next;
 
             if (audioSource != null && modeSwitchSound != null)
                 audioSource.PlayOneShot(modeSwitchSound);
 
-            Debug.Log($"[TrashGun] Modo: {currentMode}");
+            Debug.Log($"[TrashGun] Modo: {currentMode} → Tag: {modeTargetTags[(int)currentMode]}");
         }
 
         switchWasPressed = switchPressed;
@@ -112,7 +120,6 @@ public class TrashGun : MonoBehaviour, IUpdatable
         switch (currentMode)
         {
             case FireMode.Single:
-                // Dispara una vez por press
                 if (triggerPressed && !triggerWasPressed && CanFire())
                 {
                     FireSingle();
@@ -121,7 +128,6 @@ public class TrashGun : MonoBehaviour, IUpdatable
                 break;
 
             case FireMode.Burst:
-                // Ráfaga de N balas por press
                 if (triggerPressed && !triggerWasPressed && CanFire() && !isBursting)
                 {
                     StartCoroutine(FireBurst());
@@ -130,7 +136,6 @@ public class TrashGun : MonoBehaviour, IUpdatable
                 break;
 
             case FireMode.Auto:
-                // Dispara mientras se mantiene el trigger
                 if (triggerPressed && CanFire())
                 {
                     FireSingle();
@@ -139,7 +144,6 @@ public class TrashGun : MonoBehaviour, IUpdatable
                 break;
 
             case FireMode.Spread:
-                // Múltiples balas en abanico por press
                 if (triggerPressed && !triggerWasPressed && CanFire())
                 {
                     FireSpread();
@@ -178,7 +182,6 @@ public class TrashGun : MonoBehaviour, IUpdatable
     private void FireSpread()
     {
         PlayShootSound();
-
         float halfAngle = spreadAngle / 2f;
         float step = spreadCount > 1 ? spreadAngle / (spreadCount - 1) : 0f;
 
@@ -196,7 +199,14 @@ public class TrashGun : MonoBehaviour, IUpdatable
 
     private void SpawnBullet(Vector3 position, Quaternion rotation)
     {
-        GameObject bullet = Instantiate(bulletPrefab, position, rotation);
+        GameObject prefab = GetCurrentPrefab();
+        if (prefab == null)
+        {
+            Debug.LogWarning($"[TrashGun] No hay prefab asignado para el modo {currentMode}");
+            return;
+        }
+
+        GameObject bullet = Instantiate(prefab, position, rotation);
 
         Rigidbody rb = bullet.GetComponent<Rigidbody>();
         if (rb != null)
@@ -205,11 +215,23 @@ public class TrashGun : MonoBehaviour, IUpdatable
         TrashBullet trashBullet = bullet.GetComponent<TrashBullet>();
         if (trashBullet != null)
         {
-            trashBullet.SetShootableLayer(shootableLayer);
+            trashBullet.SetTargetTag(modeTargetTags[(int)currentMode]);
             trashBullet.SetImpactSound(impactSound);
         }
 
         Destroy(bullet, bulletLifetime);
+    }
+
+    private GameObject GetCurrentPrefab()
+    {
+        switch (currentMode)
+        {
+            case FireMode.Single: return bulletSingle;
+            case FireMode.Burst: return bulletBurst;
+            case FireMode.Auto: return bulletAuto;
+            case FireMode.Spread: return bulletSpread;
+            default: return bulletSingle;
+        }
     }
 
     private void PlayShootSound()
@@ -235,10 +257,8 @@ public class TrashGun : MonoBehaviour, IUpdatable
         {
             Gizmos.color = Color.red;
             float half = spreadAngle / 2f;
-            Gizmos.DrawRay(muzzle.position,
-                Quaternion.Euler(0, half, 0) * muzzle.forward * 2f);
-            Gizmos.DrawRay(muzzle.position,
-                Quaternion.Euler(0, -half, 0) * muzzle.forward * 2f);
+            Gizmos.DrawRay(muzzle.position, Quaternion.Euler(0, half, 0) * muzzle.forward * 2f);
+            Gizmos.DrawRay(muzzle.position, Quaternion.Euler(0, -half, 0) * muzzle.forward * 2f);
         }
     }
 }

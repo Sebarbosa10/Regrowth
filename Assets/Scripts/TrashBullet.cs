@@ -3,11 +3,11 @@ using UnityEngine;
 public class TrashBullet : MonoBehaviour
 {
     private AudioClip impactSound;
-    private LayerMask shootableLayer;
+    private string targetTag;
 
-    public void SetShootableLayer(LayerMask layer)
+    public void SetTargetTag(string tag)
     {
-        shootableLayer = layer;
+        targetTag = tag;
     }
 
     public void SetImpactSound(AudioClip clip)
@@ -17,12 +17,21 @@ public class TrashBullet : MonoBehaviour
 
     private void OnCollisionEnter(Collision collision)
     {
-        if (((1 << collision.gameObject.layer) & shootableLayer) == 0)
+        // Si no tiene tag objetivo configurado, ignorar todo
+        if (string.IsNullOrEmpty(targetTag))
         {
             Physics.IgnoreCollision(collision.collider, GetComponent<Collider>());
             return;
         }
 
+        // Si el objeto golpeado no tiene el tag correcto, ignorar físicamente
+        if (!collision.gameObject.CompareTag(targetTag))
+        {
+            Physics.IgnoreCollision(collision.collider, GetComponent<Collider>());
+            return;
+        }
+
+        // Hit válido
         if (impactSound != null)
             AudioSource.PlayClipAtPoint(impactSound, transform.position);
 
