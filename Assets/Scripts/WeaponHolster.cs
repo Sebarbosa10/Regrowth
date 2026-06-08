@@ -4,7 +4,7 @@ using System;
 
 public class WeaponHolster : MonoBehaviour, IUpdatable
 {
-    [Header("Settings")]
+    
     [SerializeField] private Transform snapPoint;
     [SerializeField] private float snapRadius = 0.3f;
     [SerializeField] private float maxDistance = 2.0f;
@@ -16,7 +16,7 @@ public class WeaponHolster : MonoBehaviour, IUpdatable
     private bool hasBeenGrabbed = false;
     private bool isLocked = false;
 
-    // Evento que dispara cuando el arma se guarda
+    
     public event Action OnWeaponStored;
 
     private void Start()
@@ -101,7 +101,7 @@ public class WeaponHolster : MonoBehaviour, IUpdatable
         weaponObject.transform.localPosition = Vector3.zero;
         weaponObject.transform.localRotation = Quaternion.identity;
 
-        // Disparar evento
+        
         OnWeaponStored?.Invoke();
     }
 

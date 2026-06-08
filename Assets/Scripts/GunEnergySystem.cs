@@ -5,25 +5,25 @@ using Oculus.Interaction;
 
 public class GunEnergySystem : MonoBehaviour, IUpdatable
 {
-    [Header("Energy Settings")]
+    
     [SerializeField] private int maxShots = 10;
     [SerializeField] private float rechargeShakeTime = 3f;
     [SerializeField] private float shakeThreshold = 1.5f;
 
-    [Header("Visual")]
+    
     [SerializeField] private GunModeColorizer colorizer;
     [SerializeField] private Material depletedMaterial;
 
-    [Header("Audio")]
+    
     [SerializeField] private AudioSource audioSource;
     [SerializeField] private AudioClip depletedSound;
     [SerializeField] private AudioClip rechargedSound;
 
-    [Header("Haptics")]
+    
     [SerializeField] private float rechargeHapticFrequency = 0.5f;
     [SerializeField] private float rechargeHapticAmplitude = 0.8f;
 
-    [Header("References")]
+    
     [SerializeField] private CustomUpdateManager updateManager;
     [SerializeField] private Grabbable grabbable;
 
@@ -33,7 +33,7 @@ public class GunEnergySystem : MonoBehaviour, IUpdatable
     private Vector3 lastControllerPos;
     private int currentModeIndex = 0;
 
-    // Guardamos el material del modo actual para restaurarlo al recargar
+    
     private Material lastChargedMaterial;
 
     public bool IsDepleted => isDepleted;
@@ -58,7 +58,7 @@ public class GunEnergySystem : MonoBehaviour, IUpdatable
     {
         if (!isDepleted) return;
 
-        // Solo recarga si alguien la sostiene
+        
         if (grabbable != null && grabbable.SelectingPointsCount <= 0)
         {
             shakeTimer = 0f;
@@ -73,7 +73,7 @@ public class GunEnergySystem : MonoBehaviour, IUpdatable
         {
             shakeTimer += deltaTime;
 
-            // Haptic feedback mientras agita
+            
             OVRInput.SetControllerVibration(
                 rechargeHapticFrequency,
                 rechargeHapticAmplitude * (shakeTimer / rechargeShakeTime),
@@ -85,20 +85,20 @@ public class GunEnergySystem : MonoBehaviour, IUpdatable
         }
         else
         {
-            // Para de agitar — resetea timer y haptics
+            
             shakeTimer = 0f;
             OVRInput.SetControllerVibration(0f, 0f, OVRInput.Controller.RTouch);
         }
     }
 
-    // Llamado desde TrashGun al disparar
+    
     public bool TryShoot()
     {
         if (isDepleted) return false;
 
         shotsRemaining--;
 
-        // Lerp visual de energía
+        
         UpdateEnergyVisual();
 
         if (shotsRemaining <= 0)
@@ -110,7 +110,7 @@ public class GunEnergySystem : MonoBehaviour, IUpdatable
         return true;
     }
 
-    // Llamado desde TrashGun al cambiar modo para saber qué material restaurar
+    
     public void SetCurrentMode(int modeIndex, Material chargedMaterial)
     {
         currentModeIndex = modeIndex;
@@ -122,7 +122,7 @@ public class GunEnergySystem : MonoBehaviour, IUpdatable
         isDepleted = true;
         shakeTimer = 0f;
 
-        // Aplicar material sin energía
+        
         ApplyMaterialDirect(depletedMaterial);
 
         if (audioSource != null && depletedSound != null)
@@ -139,7 +139,7 @@ public class GunEnergySystem : MonoBehaviour, IUpdatable
 
         OVRInput.SetControllerVibration(0f, 0f, OVRInput.Controller.RTouch);
 
-        // Restaurar material del modo actual
+        
         colorizer?.SetMode(currentModeIndex);
 
         if (audioSource != null && rechargedSound != null)

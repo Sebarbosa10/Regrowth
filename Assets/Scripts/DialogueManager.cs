@@ -7,15 +7,15 @@ public class DialogueManager : MonoBehaviour
 {
     public static DialogueManager Instance;
 
-    [Header("Audio Source")]
+   
     [SerializeField] private AudioSource audioSource;
 
-    [Header("Diálogos por Stage")]
+    
     [SerializeField] private AudioClip[] stage1Dialogues;
     [SerializeField] private AudioClip[] stage2Dialogues;
     [SerializeField] private AudioClip[] stage3Dialogues;
 
-    [Header("Settings")]
+    
     [SerializeField] private float delayBetweenClips = 1f; 
 
     private Coroutine currentDialogue;

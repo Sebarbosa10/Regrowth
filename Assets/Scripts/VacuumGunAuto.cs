@@ -7,17 +7,17 @@ public class VacuumGunAuto : MonoBehaviour, IUpdatable
     [SerializeField] private Grabbable grabbable;
     [SerializeField] private Transform suctionPoint;
 
-    [Header("Cone Settings")]
+    
     [SerializeField] private float coneRange = 3f;
     [SerializeField] private float coneAngle = 30f;
     [SerializeField] private float suctionSpeed = 3f;
     [SerializeField] private float destroyDistance = 0.2f;
     [SerializeField] private float triggerThreshold = 0.7f;
 
-    [Header("Layer")]
+    
     [SerializeField] private LayerMask vacuumableLayer;
 
-    [Header("Audio")]
+    
     [SerializeField] private AudioSource audioSource;
     [SerializeField] private AudioClip vacuumLoopSound;
     [SerializeField] private AudioClip plasticAbsorbSound;

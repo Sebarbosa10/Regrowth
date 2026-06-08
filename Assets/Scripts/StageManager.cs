@@ -18,33 +18,33 @@ public class StageManager : MonoBehaviour
         public int spawnCount = 10;
     }
 
-    [Header("Rounds")]
+    
     [SerializeField] private RoundConfig[] rounds = new RoundConfig[3];
 
-    [Header("Spawn Sphere")]
+    
     [SerializeField] private Transform sphereCenter;
     [SerializeField] private float sphereRadius = 5f;
     [SerializeField] private float minPlayerDistance = 1.5f;
 
-    [Header("References")]
+    
     [SerializeField] private Transform playerRig;
     [SerializeField] private FadeController fadeController;
 
-    [Header("Holsters")]
-    [SerializeField] private WeaponHolster[] holsters; // asigná todos los holsters
+    
+    [SerializeField] private WeaponHolster[] holsters; 
 
-    [Header("Settings")]
+    
     [SerializeField] private float delayBetweenRounds = 0.5f;
     [SerializeField] private int maxSpawnAttempts = 30;
     [SerializeField] private float delayBeforeMainMenu = 1.5f;
 
-    [Header("Scene Names")]
+    
     [SerializeField] private string mainMenuSceneName = "MainMenu";
 
     private int currentRound = 0;
     private int trashRemaining = 0;
     private bool transitioning = false;
-    private bool roundCleared = false; // basura destruida, esperando holster
+    private bool roundCleared = false; 
 
     private readonly List<GameObject> activeTrash = new List<GameObject>();
 
@@ -55,7 +55,7 @@ public class StageManager : MonoBehaviour
 
     private void Start()
     {
-        // Suscribirse al evento de cada holster
+        
         foreach (WeaponHolster holster in holsters)
         {
             if (holster != null)
@@ -67,7 +67,7 @@ public class StageManager : MonoBehaviour
 
     private void OnDestroy()
     {
-        // Desuscribirse para evitar memory leaks
+        
         foreach (WeaponHolster holster in holsters)
         {
             if (holster != null)
@@ -75,9 +75,7 @@ public class StageManager : MonoBehaviour
         }
     }
 
-    // ─────────────────────────────────────────
-    //  PUBLIC — llamado por TrashObject
-    // ─────────────────────────────────────────
+    
 
     public void OnTrashDestroyed()
     {
@@ -90,33 +88,28 @@ public class StageManager : MonoBehaviour
             roundCleared = true;
             Debug.Log("[StageManager] ¡Basura limpia! Guardá el arma en el holster para continuar.");
 
-            // Aquí podés agregar un feedback al jugador (sonido, UI, etc.)
+            
         }
     }
 
-    // ─────────────────────────────────────────
-    //  HOLSTER EVENT
-    // ─────────────────────────────────────────
+    
 
     private void OnAnyWeaponStored()
     {
-        // Solo transiciona si la ronda está limpia y no está ya transitioning
+        
         if (!roundCleared || transitioning) return;
 
-        // Verificar que TODOS los holsters tengan arma guardada
-        // (si querés que solo baste con uno, sacá este chequeo)
+        
         foreach (WeaponHolster holster in holsters)
         {
             if (holster != null && !holster.IsStored)
-                return; // falta alguno
+                return; 
         }
 
         StartCoroutine(TransitionToNextRound());
     }
 
-    // ─────────────────────────────────────────
-    //  TRANSITION
-    // ─────────────────────────────────────────
+    
 
     private IEnumerator TransitionToNextRound()
     {
@@ -146,9 +139,7 @@ public class StageManager : MonoBehaviour
         transitioning = false;
     }
 
-    // ─────────────────────────────────────────
-    //  LOAD ROUND
-    // ─────────────────────────────────────────
+    
 
     private void LoadRound(int roundIndex)
     {
@@ -167,9 +158,7 @@ public class StageManager : MonoBehaviour
         Debug.Log($"[StageManager] Ronda {roundIndex + 1} — {spawned} objetos spawneados");
     }
 
-    // ─────────────────────────────────────────
-    //  SPAWN LOGIC
-    // ─────────────────────────────────────────
+    
 
     private int SpawnTrash(RoundConfig config)
     {
@@ -224,9 +213,7 @@ public class StageManager : MonoBehaviour
         return false;
     }
 
-    // ─────────────────────────────────────────
-    //  CLEANUP
-    // ─────────────────────────────────────────
+   
 
     private void DestroyActiveTrash()
     {
@@ -237,9 +224,7 @@ public class StageManager : MonoBehaviour
         activeTrash.Clear();
     }
 
-    // ─────────────────────────────────────────
-    //  GIZMOS
-    // ─────────────────────────────────────────
+   
 
     private void OnDrawGizmosSelected()
     {

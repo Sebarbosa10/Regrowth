@@ -7,13 +7,13 @@ public class TrashGun : MonoBehaviour, IUpdatable
 {
     public enum FireMode
     {
-        Single = 0,  // Plastic
-        Burst = 1,  // Glass
-        Auto = 2,  // Organic
-        Spread = 3   // Metal
+        Single = 0,  
+        Burst = 1,  
+        Auto = 2,  
+        Spread = 3   
     }
 
-    [System.Serializable]
+    
     public class HapticProfile
     {
         public string modeName;
@@ -22,63 +22,63 @@ public class TrashGun : MonoBehaviour, IUpdatable
         public float duration = 0.1f;
     }
 
-    [Header("References")]
+    
     [SerializeField] private Grabbable grabbable;
     [SerializeField] private Transform muzzle;
 
-    [Header("Hitscan Settings")]
+    
     [SerializeField] private float range = 20f;
     [SerializeField] private float triggerThreshold = 0.7f;
 
-    [Header("Fire Settings")]
+    
     [SerializeField] private float fireRate = 0.3f;
 
-    [Header("— Burst Settings")]
+    
     [SerializeField] private int burstCount = 3;
     [SerializeField] private float burstDelay = 0.08f;
 
-    [Header("— Spread Settings")]
+    
     [SerializeField] private int spreadCount = 5;
     [SerializeField] private float spreadAngle = 15f;
 
-    [Header("Layer")]
+    
     [SerializeField] private LayerMask shootableLayer;
 
-    [Header("Laser Sight")]
+    
     [SerializeField] private LineRenderer laserSight;
     [SerializeField] private Color laserColor = Color.red;
     [SerializeField] private float laserWidth = 0.002f;
 
-    [Header("Bullet Trace")]
+    
     [SerializeField] private LineRenderer tracePrefab;
     [SerializeField] private float traceDuration = 0.08f;
     [SerializeField] private float traceWidth = 0.005f;
     [SerializeField] private Color traceColor = Color.yellow;
 
-    [Header("Audio")]
+   
     [SerializeField] private AudioSource audioSource;
     [SerializeField] private AudioClip shootSound;
     [SerializeField] private AudioClip impactSound;
     [SerializeField] private AudioClip modeSwitchSound;
     [SerializeField] private AudioClip noEnergySound;
 
-    [Header("Mode Switch Button")]
+    
     [SerializeField] private OVRInput.Button modeSwitchButton = OVRInput.Button.One;
 
-    [Header("Color")]
+    
     [SerializeField] private GunModeColorizer colorizer;
 
-    [Header("Two-Handed Grip")]
+    
     [SerializeField] private TwoHandedGunGrip twoHandedGrip;
 
-    [Header("Energy")]
+    
     [SerializeField] private GunEnergySystem energySystem;
 
-    [Header("Recoil")]
+    
     [SerializeField] private GunRecoil recoil;
 
-    [Header("Haptics — Fire")]
-    [SerializeField]
+    
+    
     private HapticProfile[] hapticProfiles = new HapticProfile[]
     {
         new HapticProfile { modeName = "Single", frequency = 0.8f, amplitude = 0.6f, duration = 0.08f },
@@ -87,12 +87,11 @@ public class TrashGun : MonoBehaviour, IUpdatable
         new HapticProfile { modeName = "Spread", frequency = 0.3f, amplitude = 1.0f, duration = 0.15f },
     };
 
-    [Header("Haptics — Mode Switch")]
-    [SerializeField]
+   
     private HapticProfile modeSwitchHaptic = new HapticProfile
     { modeName = "Switch", frequency = 0.2f, amplitude = 0.5f, duration = 0.12f };
 
-    [Header("Debug")]
+    
     [SerializeField] private FireMode currentMode = FireMode.Single;
 
     private static readonly string[] modeTargetTags = { "Plastic", "Glass", "Organic", "Metal" };
@@ -134,9 +133,7 @@ public class TrashGun : MonoBehaviour, IUpdatable
         HandleFire();
     }
 
-    // ─────────────────────────────────────────
-    //  LASER
-    // ─────────────────────────────────────────
+   
 
     private void SetupLaser()
     {
@@ -163,9 +160,7 @@ public class TrashGun : MonoBehaviour, IUpdatable
         laserSight.SetPosition(1, end);
     }
 
-    // ─────────────────────────────────────────
-    //  BULLET TRACE
-    // ─────────────────────────────────────────
+    
 
     private void SpawnTrace(Vector3 from, Vector3 to)
     {
@@ -198,9 +193,7 @@ public class TrashGun : MonoBehaviour, IUpdatable
         Destroy(trace.gameObject);
     }
 
-    // ─────────────────────────────────────────
-    //  CONTROLLER DETECTION
-    // ─────────────────────────────────────────
+    
 
     private void DetectActiveController()
     {
@@ -213,13 +206,11 @@ public class TrashGun : MonoBehaviour, IUpdatable
             activeController = OVRInput.Controller.LTouch;
     }
 
-    // ─────────────────────────────────────────
-    //  MODE SWITCH
-    // ─────────────────────────────────────────
+    
 
     private void HandleModeSwitch()
     {
-        // Bloquear cambio de modo si está sin energía
+        
         if (energySystem != null && energySystem.IsDepleted)
         {
             switchWasPressed = OVRInput.Get(modeSwitchButton);
@@ -246,9 +237,7 @@ public class TrashGun : MonoBehaviour, IUpdatable
         switchWasPressed = switchPressed;
     }
 
-    // ─────────────────────────────────────────
-    //  FIRE ROUTING
-    // ─────────────────────────────────────────
+    
 
     private void HandleFire()
     {
@@ -326,9 +315,7 @@ public class TrashGun : MonoBehaviour, IUpdatable
         return twoHandedGrip.IsMainHandActive;
     }
 
-    // ─────────────────────────────────────────
-    //  FIRE MODES
-    // ─────────────────────────────────────────
+   
 
     private void FireSingle(Vector3 direction)
     {
@@ -369,9 +356,7 @@ public class TrashGun : MonoBehaviour, IUpdatable
         recoil?.ApplyRecoil((int)currentMode);
     }
 
-    // ─────────────────────────────────────────
-    //  HITSCAN
-    // ─────────────────────────────────────────
+    
 
     private void Hitscan(Vector3 origin, Vector3 direction)
     {
@@ -397,9 +382,7 @@ public class TrashGun : MonoBehaviour, IUpdatable
         SpawnTrace(origin, endPoint);
     }
 
-    // ─────────────────────────────────────────
-    //  HAPTICS
-    // ─────────────────────────────────────────
+    
 
     private void VibrateForMode()
     {
@@ -425,9 +408,7 @@ public class TrashGun : MonoBehaviour, IUpdatable
         OVRInput.SetControllerVibration(0f, 0f, controller);
     }
 
-    // ─────────────────────────────────────────
-    //  HELPERS
-    // ─────────────────────────────────────────
+   
 
     private void PlayShootSound()
     {

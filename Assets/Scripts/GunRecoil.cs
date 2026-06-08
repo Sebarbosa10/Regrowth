@@ -15,7 +15,7 @@ public class GunRecoil : MonoBehaviour
         public float kickSpeed = 20f;       
     }
 
-    [Header("Recoil Profiles por modo")]
+    
     [SerializeField]
     private RecoilProfile[] profiles = new RecoilProfile[]
     {
@@ -25,8 +25,8 @@ public class GunRecoil : MonoBehaviour
         new RecoilProfile { modeName = "Spread",  kickBack = 0.08f, kickUp = 6f,  kickSide = 2f,   returnSpeed = 7f,  kickSpeed = 20f },
     };
 
-    [Header("Reference")]
-    [SerializeField] private Transform gunModel; // el modelo 3D del arma
+   
+    [SerializeField] private Transform gunModel; 
 
     private Vector3 originalPosition;
     private Quaternion originalRotation;
@@ -45,7 +45,7 @@ public class GunRecoil : MonoBehaviour
 
     private void Update()
     {
-        // Volver suavemente a la posición original
+        
         gunModel.localPosition = Vector3.Lerp(
             gunModel.localPosition,
             targetPosition,
@@ -58,7 +58,7 @@ public class GunRecoil : MonoBehaviour
             Time.deltaTime * GetCurrentReturnSpeed()
         );
 
-        // Cuando está cerca del target, volver al original
+        
         if (Vector3.Distance(gunModel.localPosition, targetPosition) < 0.001f)
         {
             targetPosition = originalPosition;
@@ -72,20 +72,20 @@ public class GunRecoil : MonoBehaviour
 
         RecoilProfile profile = profiles[modeIndex];
 
-        // Kick instantáneo
+        
         float randomSide = Random.Range(-profile.kickSide, profile.kickSide);
 
         gunModel.localPosition -= new Vector3(0, 0, profile.kickBack);
         gunModel.localRotation *= Quaternion.Euler(-profile.kickUp, randomSide, 0);
 
-        // El target vuelve al original
+        
         targetPosition = originalPosition;
         targetRotation = originalRotation;
     }
 
     private float GetCurrentReturnSpeed()
     {
-        // Promedio de los returnSpeed — podrías guardar el modo actual si querés más precisión
+        
         return 10f;
     }
 }

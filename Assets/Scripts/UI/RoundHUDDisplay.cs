@@ -7,11 +7,11 @@ using UnityEngine;
 /// </summary>
 public class RoundHUDDisplay : MonoBehaviour
 {
-    [Header("Referencias UI")]
+    
     [SerializeField] private TextMeshProUGUI totalText;
     [SerializeField] private TextMeshProUGUI destroyedText;
 
-    [Header("Formato")]
+    
     [SerializeField] private string totalLabel = "Total";
     [SerializeField] private string destroyedLabel = "Destruidas";
 
@@ -25,9 +25,7 @@ public class RoundHUDDisplay : MonoBehaviour
         Instance = this;
     }
 
-    /// <summary>
-    /// Llamar desde StageManager al iniciar cada ronda.
-    /// </summary>
+   
     public void SetRoundTotal(int totalTrash)
     {
         total = totalTrash;
@@ -35,9 +33,7 @@ public class RoundHUDDisplay : MonoBehaviour
         Refresh();
     }
 
-    /// <summary>
-    /// Llamar desde StageManager cada vez que se destruye una basura.
-    /// </summary>
+    
     public void RegisterDestroyed()
     {
         destroyed++;

@@ -11,13 +11,13 @@ public class GunModeColorizer : MonoBehaviour
         public Material material;
     }
 
-    [Header("Renderers a colorear")]
+    
     [SerializeField] private Renderer[] targetRenderers;
 
-    [Header("Index del material dentro de cada Renderer")]
+    
     [SerializeField] private int materialIndex = 0;
 
-    [Header("Materiales por modo (Single, Burst, Auto, Spread)")]
+    
     [SerializeField]
     private ModeMaterial[] modeMaterials = new ModeMaterial[]
     {
@@ -29,7 +29,7 @@ public class GunModeColorizer : MonoBehaviour
 
     private int currentModeIndex = 0;
 
-    // Llamado al cambiar modo — restaura el material del modo
+    
     public void SetMode(int modeIndex)
     {
         if (modeIndex < 0 || modeIndex >= modeMaterials.Length) return;
@@ -45,7 +45,7 @@ public class GunModeColorizer : MonoBehaviour
         ApplyMaterial(target);
     }
 
-    // Llamado por GunEnergySystem — interpola color disparo a disparo
+    
     public void SetEnergyLerp(float t, Material depletedMaterial)
     {
         if (modeMaterials[currentModeIndex].material == null || depletedMaterial == null) return;
@@ -63,13 +63,13 @@ public class GunModeColorizer : MonoBehaviour
         }
     }
 
-    // Llamado por GunEnergySystem cuando se queda sin energía
+   
     public void SetDepletedMaterial(Material mat)
     {
         ApplyMaterial(mat);
     }
 
-    // Devuelve el material del modo actual (para que GunEnergySystem lo guarde)
+
     public Material GetCurrentMaterial()
     {
         if (currentModeIndex < 0 || currentModeIndex >= modeMaterials.Length) return null;
