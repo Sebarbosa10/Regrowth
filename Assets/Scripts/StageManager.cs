@@ -1,28 +1,44 @@
-using System.Collections;
+﻿using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class StageManager : MonoBehaviour
 {
     public static StageManager Instance;
 
-    [Header("Stage Zones (posiciones del jugador)")]
-    [SerializeField] private Transform[] stageSpawnPoints; 
+    [System.Serializable]
+    public class RoundConfig
+    {
+        public string roundName;
+        [Tooltip("Prefabs de basura a spawnear en esta ronda")]
+        public GameObject[] trashPrefabs;
+        [Tooltip("Cuantos objetos spawnear en total")]
+        public int spawnCount = 10;
+    }
 
-    [Header("Basura por Stage")]
-    [SerializeField] private GameObject[] stage1Trash;
-    [SerializeField] private GameObject[] stage2Trash;
-    [SerializeField] private GameObject[] stage3Trash;
+    [Header("Rounds")]
+    [SerializeField] private RoundConfig[] rounds = new RoundConfig[3];
 
-    [Header("Armas")]
-    [SerializeField] private GameObject vacuumGun;
-    [SerializeField] private GameObject trashGun;
+    [Header("Spawn Sphere")]
+    [SerializeField] private Transform sphereCenter;
+    [SerializeField] private float sphereRadius = 5f;
+    [SerializeField] private float minPlayerDistance = 1.5f;
 
     [Header("References")]
-    [SerializeField] private Transform playerRig; 
+    [SerializeField] private Transform playerRig;
     [SerializeField] private FadeController fadeController;
+    [SerializeField] private GameObject trashGun;
 
-    private int currentStage = 0;
+    [Header("Settings")]
+    [SerializeField] private float delayBetweenRounds = 0.5f;
+    [SerializeField] private int maxSpawnAttempts = 30;
+
+    private int currentRound = 0;
     private int trashRemaining = 0;
+    private bool transitioning = false;
+
+    // Todos los objetos de basura vivos en la ronda actual
+    private readonly List<GameObject> activeTrash = new List<GameObject>();
 
     private void Awake()
     {
@@ -31,92 +47,168 @@ public class StageManager : MonoBehaviour
 
     private void Start()
     {
-        LoadStage(0);
+        LoadRound(0);
     }
+
+    // ─────────────────────────────────────────
+    //  PUBLIC — llamado por TrashObject
+    // ─────────────────────────────────────────
 
     public void OnTrashDestroyed()
     {
         trashRemaining--;
 
-        if (trashRemaining <= 0)
-        {
-            StartCoroutine(TransitionToNextStage());
-        }
+        if (trashRemaining <= 0 && !transitioning)
+            StartCoroutine(TransitionToNextRound());
     }
 
-    private IEnumerator TransitionToNextStage()
+    // ─────────────────────────────────────────
+    //  TRANSITION
+    // ─────────────────────────────────────────
+
+    private IEnumerator TransitionToNextRound()
     {
-        
+        transitioning = true;
+
         yield return StartCoroutine(fadeController.FadeOut());
 
-        currentStage++;
+        DestroyActiveTrash();
 
-        if (currentStage >= 3)
+        currentRound++;
+
+        if (currentRound >= rounds.Length)
         {
-            
-            Debug.Log("�Juego completado!");
+            Debug.Log("[StageManager] ¡Juego completado!");
+            // Aqui podras poner tu pantalla de fin / creditos
             yield break;
         }
 
-        LoadStage(currentStage);
+        LoadRound(currentRound);
 
-        yield return new WaitForSeconds(0.5f);
+        yield return new WaitForSeconds(delayBetweenRounds);
 
-        
         yield return StartCoroutine(fadeController.FadeIn());
+
+        transitioning = false;
     }
 
-    private void LoadStage(int stage)
+    // ─────────────────────────────────────────
+    //  LOAD ROUND
+    // ─────────────────────────────────────────
+
+    private void LoadRound(int roundIndex)
     {
-        
-        DeactivateAllTrash();
+        if (roundIndex >= rounds.Length) return;
 
-        GameObject[] currentTrash = null;
+        RoundConfig config = rounds[roundIndex];
 
-        //switch (stage)
-        //{
-        //    case 0:
-        //        currentTrash = stage1Trash;
-        //        vacuumGun.SetActive(true);
-        //        trashGun.SetActive(false);
-        //        break;
+        activeTrash.Clear();
 
-        //    case 1:
-        //        currentTrash = stage2Trash;
-        //        vacuumGun.SetActive(true);
-        //        trashGun.SetActive(true);
-        //        break;
+        // Arma — ronda 0 sin gun, resto con gun
+        if (trashGun != null)
+            trashGun.SetActive(roundIndex > 0);
 
-        //    case 2:
-        //        currentTrash = stage3Trash;
-        //        vacuumGun.SetActive(true);
-        //        trashGun.SetActive(true);
-        //        break;
-        //}
+        // Dialogos
+        DialogueManager.Instance?.PlayDialoguesForStage(roundIndex);
 
-        
-        DialogueManager.Instance?.PlayDialoguesForStage(stage);
+        // Spawn
+        int spawned = SpawnTrash(config);
+        trashRemaining = spawned;
 
-        
-        if (currentTrash != null)
+        Debug.Log($"[StageManager] Ronda {roundIndex + 1} — {spawned} objetos spawneados");
+    }
+
+    // ─────────────────────────────────────────
+    //  SPAWN LOGIC
+    // ─────────────────────────────────────────
+
+    private int SpawnTrash(RoundConfig config)
+    {
+        if (config.trashPrefabs == null || config.trashPrefabs.Length == 0)
         {
-            trashRemaining = currentTrash.Length;
-            foreach (GameObject trash in currentTrash)
+            Debug.LogWarning("[StageManager] La ronda no tiene prefabs asignados.");
+            return 0;
+        }
+
+        Vector3 center = sphereCenter != null ? sphereCenter.position : transform.position;
+        int spawned = 0;
+
+        for (int i = 0; i < config.spawnCount; i++)
+        {
+            Vector3 spawnPos;
+            bool found = TryGetSpawnPosition(center, out spawnPos);
+
+            if (!found)
             {
-                trash.SetActive(true);
+                Debug.LogWarning($"[StageManager] No se encontro posicion valida para objeto {i}");
+                continue;
             }
+
+            // Elegir prefab aleatorio de los disponibles para esta ronda
+            GameObject prefab = config.trashPrefabs[Random.Range(0, config.trashPrefabs.Length)];
+            if (prefab == null) continue;
+
+            GameObject obj = Instantiate(prefab, spawnPos, Random.rotation);
+            activeTrash.Add(obj);
+            spawned++;
         }
 
-        
-        if (stageSpawnPoints.Length > stage)
-        {
-            playerRig.position = stageSpawnPoints[stage].position;
-        }
+        return spawned;
     }
-    private void DeactivateAllTrash()
+
+    private bool TryGetSpawnPosition(Vector3 center, out Vector3 result)
     {
-        foreach (var t in stage1Trash) if (t != null) t.SetActive(false);
-        foreach (var t in stage2Trash) if (t != null) t.SetActive(false);
-        foreach (var t in stage3Trash) if (t != null) t.SetActive(false);
+        Vector3 playerPos = playerRig != null ? playerRig.position : Vector3.zero;
+
+        for (int attempt = 0; attempt < maxSpawnAttempts; attempt++)
+        {
+            // Punto aleatorio DENTRO de la esfera (distribucion uniforme)
+            Vector3 candidate = center + Random.insideUnitSphere * sphereRadius;
+
+            float distToPlayer = Vector3.Distance(candidate, playerPos);
+            if (distToPlayer < minPlayerDistance)
+                continue;
+
+            result = candidate;
+            return true;
+        }
+
+        result = Vector3.zero;
+        return false;
+    }
+
+    // ─────────────────────────────────────────
+    //  CLEANUP
+    // ─────────────────────────────────────────
+
+    private void DestroyActiveTrash()
+    {
+        foreach (GameObject obj in activeTrash)
+        {
+            if (obj != null) Destroy(obj);
+        }
+        activeTrash.Clear();
+    }
+
+    // ─────────────────────────────────────────
+    //  GIZMOS
+    // ─────────────────────────────────────────
+
+    private void OnDrawGizmosSelected()
+    {
+        Vector3 center = sphereCenter != null ? sphereCenter.position : transform.position;
+
+        // Esfera de spawn
+        Gizmos.color = new Color(0f, 1f, 0.4f, 0.15f);
+        Gizmos.DrawSphere(center, sphereRadius);
+        Gizmos.color = new Color(0f, 1f, 0.4f, 0.8f);
+        Gizmos.DrawWireSphere(center, sphereRadius);
+
+        // Radio minimo alrededor del player
+        Vector3 playerPos = playerRig != null ? playerRig.position : center;
+        Gizmos.color = new Color(1f, 0.3f, 0.3f, 0.2f);
+        Gizmos.DrawSphere(playerPos, minPlayerDistance);
+        Gizmos.color = new Color(1f, 0.3f, 0.3f, 0.8f);
+        Gizmos.DrawWireSphere(playerPos, minPlayerDistance);
     }
 }
