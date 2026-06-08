@@ -27,7 +27,6 @@ public class StageManager : MonoBehaviour
     [Header("References")]
     [SerializeField] private Transform playerRig;
     [SerializeField] private FadeController fadeController;
-    [SerializeField] private GameObject trashGun;
 
     [Header("Settings")]
     [SerializeField] private float delayBetweenRounds = 0.5f;
@@ -104,9 +103,6 @@ public class StageManager : MonoBehaviour
 
         activeTrash.Clear();
 
-        // Arma — ronda 0 sin gun, resto con gun
-        if (trashGun != null)
-            trashGun.SetActive(roundIndex > 0);
 
         // Dialogos
         DialogueManager.Instance?.PlayDialoguesForStage(roundIndex);

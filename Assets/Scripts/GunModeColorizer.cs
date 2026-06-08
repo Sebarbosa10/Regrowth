@@ -1,13 +1,13 @@
-using System.Collections;
+﻿using System.Collections;
 using UnityEngine;
 
 public class GunModeColorizer : MonoBehaviour
 {
     [System.Serializable]
-    public class ModeColors
+    public class ModeMaterial
     {
-        public string modeName;         // Solo para identificarlo en el Inspector
-        public Color color = Color.white;
+        public string modeName;       // Solo para el Inspector
+        public Material material;     // Material a aplicar en este modo
     }
 
     [Header("Renderers a colorear")]
@@ -16,80 +16,60 @@ public class GunModeColorizer : MonoBehaviour
     [Header("Index del material dentro de cada Renderer")]
     [SerializeField] private int materialIndex = 0;
 
-    [Header("Colores por modo (Single, Burst, Auto, Spread)")]
+    [Header("Materiales por modo (Single, Burst, Auto, Spread)")]
     [SerializeField]
-    private ModeColors[] modeColors = new ModeColors[]
+    private ModeMaterial[] modeMaterials = new ModeMaterial[]
     {
-        new ModeColors { modeName = "Single  - Plastic", color = Color.green   },
-        new ModeColors { modeName = "Burst   - Glass",   color = Color.cyan    },
-        new ModeColors { modeName = "Auto    - Organic", color = Color.yellow  },
-        new ModeColors { modeName = "Spread  - Metal",   color = Color.red     },
+        new ModeMaterial { modeName = "Single  - Plastic" },
+        new ModeMaterial { modeName = "Burst   - Glass"   },
+        new ModeMaterial { modeName = "Auto    - Organic" },
+        new ModeMaterial { modeName = "Spread  - Metal"   },
     };
 
-    [Header("Lerp Settings")]
-    [SerializeField] private float lerpDuration = 0.35f;
-    [SerializeField] private string colorProperty = "_Color"; // "_BaseColor" para URP/HDRP
-
-    private MaterialPropertyBlock propBlock;
-    private Coroutine lerpCoroutine;
-
-    private void Awake()
-    {
-        propBlock = new MaterialPropertyBlock();
-    }
+    // ─────────────────────────────────────────
+    //  PUBLIC — llamar desde TrashGun al cambiar modo
+    // ─────────────────────────────────────────
 
     /// <summary>
-    /// Llamar desde TrashGun al cambiar de modo.
+    /// Swappea instantáneamente el material en el índice indicado.
     /// </summary>
     public void SetMode(int modeIndex)
     {
-        if (modeIndex < 0 || modeIndex >= modeColors.Length) return;
+        if (modeIndex < 0 || modeIndex >= modeMaterials.Length) return;
 
-        if (lerpCoroutine != null) StopCoroutine(lerpCoroutine);
-        lerpCoroutine = StartCoroutine(LerpToColor(modeColors[modeIndex].color));
-    }
-
-    private IEnumerator LerpToColor(Color targetColor)
-    {
-        // Leer el color actual del primer renderer como punto de partida
-        Color startColor = GetCurrentColor();
-
-        float t = 0f;
-        while (t < lerpDuration)
+        Material target = modeMaterials[modeIndex].material;
+        if (target == null)
         {
-            t += Time.deltaTime;
-            Color current = Color.Lerp(startColor, targetColor, t / lerpDuration);
-            ApplyColor(current);
-            yield return null;
+            Debug.LogWarning($"[GunModeColorizer] Modo {modeIndex} no tiene material asignado.");
+            return;
         }
 
-        ApplyColor(targetColor);
-        lerpCoroutine = null;
+        ApplyMaterial(target);
     }
 
-    private Color GetCurrentColor()
-    {
-        if (targetRenderers == null || targetRenderers.Length == 0) return Color.white;
-        Renderer r = targetRenderers[0];
-        if (r == null) return Color.white;
+    // ─────────────────────────────────────────
+    //  PRIVATE
+    // ─────────────────────────────────────────
 
-        r.GetPropertyBlock(propBlock, materialIndex);
-        // Si el propBlock no tiene el color todav�a, leer del material directamente
-        Color c = propBlock.GetColor(colorProperty);
-        return c == Color.clear
-            ? r.sharedMaterials[materialIndex].GetColor(colorProperty)
-            : c;
-    }
-
-    private void ApplyColor(Color color)
+    private void ApplyMaterial(Material mat)
     {
         if (targetRenderers == null) return;
+
         foreach (Renderer r in targetRenderers)
         {
             if (r == null) continue;
-            r.GetPropertyBlock(propBlock, materialIndex);
-            propBlock.SetColor(colorProperty, color);
-            r.SetPropertyBlock(propBlock, materialIndex);
+
+            // Copiamos el array para no mutar el sharedMaterials directamente
+            Material[] mats = r.materials;
+
+            if (materialIndex >= mats.Length)
+            {
+                Debug.LogWarning($"[GunModeColorizer] materialIndex {materialIndex} fuera de rango en {r.name}");
+                continue;
+            }
+
+            mats[materialIndex] = mat;
+            r.materials = mats;
         }
     }
 }
