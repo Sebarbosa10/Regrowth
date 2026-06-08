@@ -2,6 +2,7 @@
 using UnityEngine;
 using Oculus.Interaction;
 
+
 public class TrashGun : MonoBehaviour, IUpdatable
 {
     public enum FireMode
@@ -59,6 +60,7 @@ public class TrashGun : MonoBehaviour, IUpdatable
     [SerializeField] private AudioClip shootSound;
     [SerializeField] private AudioClip impactSound;
     [SerializeField] private AudioClip modeSwitchSound;
+    [SerializeField] private AudioClip noEnergySound;
 
     [Header("Mode Switch Button")]
     [SerializeField] private OVRInput.Button modeSwitchButton = OVRInput.Button.One;
@@ -67,10 +69,15 @@ public class TrashGun : MonoBehaviour, IUpdatable
     [SerializeField] private GunModeColorizer colorizer;
 
     [Header("Two-Handed Grip")]
-    [Tooltip("Referencia al script de dos manos. Si no está asignado, dispara con cualquier mano.")]
     [SerializeField] private TwoHandedGunGrip twoHandedGrip;
 
-    [Header("Haptics — Fire (uno por modo)")]
+    [Header("Energy")]
+    [SerializeField] private GunEnergySystem energySystem;
+
+    [Header("Recoil")]
+    [SerializeField] private GunRecoil recoil;
+
+    [Header("Haptics — Fire")]
     [SerializeField]
     private HapticProfile[] hapticProfiles = new HapticProfile[]
     {
@@ -104,6 +111,7 @@ public class TrashGun : MonoBehaviour, IUpdatable
     {
         if (updateManager != null) updateManager.Register(this);
         colorizer?.SetMode((int)currentMode);
+        energySystem?.SetCurrentMode((int)currentMode, colorizer?.GetCurrentMaterial());
         SetupLaser();
     }
 
@@ -115,13 +123,10 @@ public class TrashGun : MonoBehaviour, IUpdatable
 
     public void Tick(float deltaTime)
     {
-        if (grabbable == null || muzzle == null)
-            return;
+        if (grabbable == null || muzzle == null) return;
 
         bool held = grabbable.SelectingPointsCount > 0;
-
         UpdateLaser(held);
-
         if (!held) return;
 
         DetectActiveController();
@@ -130,7 +135,7 @@ public class TrashGun : MonoBehaviour, IUpdatable
     }
 
     // ─────────────────────────────────────────
-    //  LASER SIGHT
+    //  LASER
     // ─────────────────────────────────────────
 
     private void SetupLaser()
@@ -147,19 +152,14 @@ public class TrashGun : MonoBehaviour, IUpdatable
     private void UpdateLaser(bool held)
     {
         if (laserSight == null) return;
-
         laserSight.enabled = held;
         if (!held) return;
 
-        Vector3 start = muzzle.position;
-        Vector3 end;
+        Vector3 end = Physics.Raycast(muzzle.position, muzzle.forward, out RaycastHit hit, range, shootableLayer)
+            ? hit.point
+            : muzzle.position + muzzle.forward * range;
 
-        if (Physics.Raycast(muzzle.position, muzzle.forward, out RaycastHit hit, range, shootableLayer))
-            end = hit.point;
-        else
-            end = muzzle.position + muzzle.forward * range;
-
-        laserSight.SetPosition(0, start);
+        laserSight.SetPosition(0, muzzle.position);
         laserSight.SetPosition(1, end);
     }
 
@@ -170,7 +170,6 @@ public class TrashGun : MonoBehaviour, IUpdatable
     private void SpawnTrace(Vector3 from, Vector3 to)
     {
         if (tracePrefab == null) return;
-
         LineRenderer trace = Instantiate(tracePrefab, Vector3.zero, Quaternion.identity);
         trace.useWorldSpace = true;
         trace.positionCount = 2;
@@ -180,7 +179,6 @@ public class TrashGun : MonoBehaviour, IUpdatable
         trace.endColor = new Color(traceColor.r, traceColor.g, traceColor.b, 0f);
         trace.SetPosition(0, from);
         trace.SetPosition(1, to);
-
         StartCoroutine(FadeTrace(trace));
     }
 
@@ -189,7 +187,6 @@ public class TrashGun : MonoBehaviour, IUpdatable
         float t = 0f;
         Color startA = trace.startColor;
         Color endA = trace.endColor;
-
         while (t < traceDuration)
         {
             t += Time.deltaTime;
@@ -198,7 +195,6 @@ public class TrashGun : MonoBehaviour, IUpdatable
             trace.endColor = new Color(endA.r, endA.g, endA.b, alpha * 0.3f);
             yield return null;
         }
-
         Destroy(trace.gameObject);
     }
 
@@ -223,6 +219,13 @@ public class TrashGun : MonoBehaviour, IUpdatable
 
     private void HandleModeSwitch()
     {
+        // Bloquear cambio de modo si está sin energía
+        if (energySystem != null && energySystem.IsDepleted)
+        {
+            switchWasPressed = OVRInput.Get(modeSwitchButton);
+            return;
+        }
+
         bool switchPressed = OVRInput.Get(modeSwitchButton);
 
         if (switchPressed && !switchWasPressed)
@@ -234,6 +237,7 @@ public class TrashGun : MonoBehaviour, IUpdatable
                 audioSource.PlayOneShot(modeSwitchSound);
 
             colorizer?.SetMode((int)currentMode);
+            energySystem?.SetCurrentMode((int)currentMode, colorizer?.GetCurrentMaterial());
             Vibrate(modeSwitchHaptic);
 
             Debug.Log($"[TrashGun] Modo: {currentMode} -> Tag: {modeTargetTags[(int)currentMode]}");
@@ -248,7 +252,6 @@ public class TrashGun : MonoBehaviour, IUpdatable
 
     private void HandleFire()
     {
-        // Solo dispara si la mano del mango (derecha) está activa
         if (!IsMainHandHoldingGun()) return;
 
         bool triggerPressed = IsRightTriggerPressed();
@@ -258,32 +261,44 @@ public class TrashGun : MonoBehaviour, IUpdatable
             case FireMode.Single:
                 if (triggerPressed && !triggerWasPressed && CanFire())
                 {
-                    FireSingle(muzzle.forward);
-                    lastFireTime = Time.time;
+                    if (TryConsumeEnergy())
+                    {
+                        FireSingle(muzzle.forward);
+                        lastFireTime = Time.time;
+                    }
                 }
                 break;
 
             case FireMode.Burst:
                 if (triggerPressed && !triggerWasPressed && CanFire() && !isBursting)
                 {
-                    StartCoroutine(FireBurst());
-                    lastFireTime = Time.time;
+                    if (TryConsumeEnergy())
+                    {
+                        StartCoroutine(FireBurst());
+                        lastFireTime = Time.time;
+                    }
                 }
                 break;
 
             case FireMode.Auto:
                 if (triggerPressed && CanFire())
                 {
-                    FireSingle(muzzle.forward);
-                    lastFireTime = Time.time;
+                    if (TryConsumeEnergy())
+                    {
+                        FireSingle(muzzle.forward);
+                        lastFireTime = Time.time;
+                    }
                 }
                 break;
 
             case FireMode.Spread:
                 if (triggerPressed && !triggerWasPressed && CanFire())
                 {
-                    FireSpread();
-                    lastFireTime = Time.time;
+                    if (TryConsumeEnergy())
+                    {
+                        FireSpread();
+                        lastFireTime = Time.time;
+                    }
                 }
                 break;
         }
@@ -293,10 +308,18 @@ public class TrashGun : MonoBehaviour, IUpdatable
 
     private bool CanFire() => Time.time >= lastFireTime + fireRate;
 
-    /// <summary>
-    /// Devuelve true si la mano derecha tiene el mango agarrado.
-    /// Si no hay TwoHandedGrip asignado, siempre devuelve true (comportamiento original).
-    /// </summary>
+    private bool TryConsumeEnergy()
+    {
+        if (energySystem == null) return true;
+
+        bool canShoot = energySystem.TryShoot();
+
+        if (!canShoot && audioSource != null && noEnergySound != null)
+            audioSource.PlayOneShot(noEnergySound);
+
+        return canShoot;
+    }
+
     private bool IsMainHandHoldingGun()
     {
         if (twoHandedGrip == null) return true;
@@ -312,6 +335,7 @@ public class TrashGun : MonoBehaviour, IUpdatable
         PlayShootSound();
         Hitscan(muzzle.position, direction);
         VibrateForMode();
+        recoil?.ApplyRecoil((int)currentMode);
     }
 
     private IEnumerator FireBurst()
@@ -322,6 +346,7 @@ public class TrashGun : MonoBehaviour, IUpdatable
             PlayShootSound();
             Hitscan(muzzle.position, muzzle.forward);
             VibrateForMode();
+            recoil?.ApplyRecoil((int)currentMode);
             yield return new WaitForSeconds(burstDelay);
         }
         isBursting = false;
@@ -339,11 +364,13 @@ public class TrashGun : MonoBehaviour, IUpdatable
             Vector3 dir = Quaternion.Euler(0f, yaw, 0f) * muzzle.forward;
             Hitscan(muzzle.position, dir);
         }
+
         VibrateForMode();
+        recoil?.ApplyRecoil((int)currentMode);
     }
 
     // ─────────────────────────────────────────
-    //  HITSCAN CORE
+    //  HITSCAN
     // ─────────────────────────────────────────
 
     private void Hitscan(Vector3 origin, Vector3 direction)
@@ -408,7 +435,6 @@ public class TrashGun : MonoBehaviour, IUpdatable
             audioSource.PlayOneShot(shootSound);
     }
 
-    /// <summary>Solo el trigger derecho dispara — la mano del mango.</summary>
     private bool IsRightTriggerPressed()
     {
         float right = OVRInput.Get(OVRInput.Axis1D.PrimaryIndexTrigger, OVRInput.Controller.RTouch);

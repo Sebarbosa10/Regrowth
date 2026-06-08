@@ -1,13 +1,14 @@
 ﻿using System.Collections;
 using UnityEngine;
 
+
 public class GunModeColorizer : MonoBehaviour
 {
     [System.Serializable]
     public class ModeMaterial
     {
-        public string modeName;       // Solo para el Inspector
-        public Material material;     // Material a aplicar en este modo
+        public string modeName;
+        public Material material;
     }
 
     [Header("Renderers a colorear")]
@@ -26,16 +27,13 @@ public class GunModeColorizer : MonoBehaviour
         new ModeMaterial { modeName = "Spread  - Metal"   },
     };
 
-    // ─────────────────────────────────────────
-    //  PUBLIC — llamar desde TrashGun al cambiar modo
-    // ─────────────────────────────────────────
+    private int currentModeIndex = 0;
 
-    /// <summary>
-    /// Swappea instantáneamente el material en el índice indicado.
-    /// </summary>
+    // Llamado al cambiar modo — restaura el material del modo
     public void SetMode(int modeIndex)
     {
         if (modeIndex < 0 || modeIndex >= modeMaterials.Length) return;
+        currentModeIndex = modeIndex;
 
         Material target = modeMaterials[modeIndex].material;
         if (target == null)
@@ -47,9 +45,36 @@ public class GunModeColorizer : MonoBehaviour
         ApplyMaterial(target);
     }
 
-    // ─────────────────────────────────────────
-    //  PRIVATE
-    // ─────────────────────────────────────────
+    // Llamado por GunEnergySystem — interpola color disparo a disparo
+    public void SetEnergyLerp(float t, Material depletedMaterial)
+    {
+        if (modeMaterials[currentModeIndex].material == null || depletedMaterial == null) return;
+
+        Color chargedColor = modeMaterials[currentModeIndex].material.color;
+        Color depletedColor = depletedMaterial.color;
+
+        foreach (Renderer r in targetRenderers)
+        {
+            if (r == null) continue;
+            Material[] mats = r.materials;
+            if (materialIndex >= mats.Length) continue;
+            mats[materialIndex].color = Color.Lerp(chargedColor, depletedColor, t);
+            r.materials = mats;
+        }
+    }
+
+    // Llamado por GunEnergySystem cuando se queda sin energía
+    public void SetDepletedMaterial(Material mat)
+    {
+        ApplyMaterial(mat);
+    }
+
+    // Devuelve el material del modo actual (para que GunEnergySystem lo guarde)
+    public Material GetCurrentMaterial()
+    {
+        if (currentModeIndex < 0 || currentModeIndex >= modeMaterials.Length) return null;
+        return modeMaterials[currentModeIndex].material;
+    }
 
     private void ApplyMaterial(Material mat)
     {
@@ -58,16 +83,12 @@ public class GunModeColorizer : MonoBehaviour
         foreach (Renderer r in targetRenderers)
         {
             if (r == null) continue;
-
-            // Copiamos el array para no mutar el sharedMaterials directamente
             Material[] mats = r.materials;
-
             if (materialIndex >= mats.Length)
             {
                 Debug.LogWarning($"[GunModeColorizer] materialIndex {materialIndex} fuera de rango en {r.name}");
                 continue;
             }
-
             mats[materialIndex] = mat;
             r.materials = mats;
         }

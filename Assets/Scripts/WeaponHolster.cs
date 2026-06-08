@@ -1,6 +1,6 @@
 using UnityEngine;
 using Oculus.Interaction;
-
+using System;
 
 public class WeaponHolster : MonoBehaviour, IUpdatable
 {
@@ -10,12 +10,14 @@ public class WeaponHolster : MonoBehaviour, IUpdatable
     [SerializeField] private float maxDistance = 2.0f;
     [SerializeField] private Transform playerTransform;
     [SerializeField] private GameObject weaponObject;
-
     [SerializeField] private CustomUpdateManager updateManager;
 
     private bool isStored = false;
     private bool hasBeenGrabbed = false;
     private bool isLocked = false;
+
+    // Evento que dispara cuando el arma se guarda
+    public event Action OnWeaponStored;
 
     private void Start()
     {
@@ -51,7 +53,6 @@ public class WeaponHolster : MonoBehaviour, IUpdatable
             {
                 Rigidbody rb = weaponObject.GetComponent<Rigidbody>();
                 if (rb != null) rb.isKinematic = false;
-
                 weaponObject.transform.SetParent(null);
                 isStored = false;
             }
@@ -73,6 +74,8 @@ public class WeaponHolster : MonoBehaviour, IUpdatable
 
     public void Lock() => isLocked = true;
     public void Unlock() => isLocked = false;
+
+    public bool IsStored => isStored;
 
     public void ForceStore(GameObject weapon)
     {
@@ -97,6 +100,9 @@ public class WeaponHolster : MonoBehaviour, IUpdatable
         weaponObject.transform.SetParent(snapPoint);
         weaponObject.transform.localPosition = Vector3.zero;
         weaponObject.transform.localRotation = Quaternion.identity;
+
+        // Disparar evento
+        OnWeaponStored?.Invoke();
     }
 
     private void ForceReturnToHolster()

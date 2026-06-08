@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
+
 public class StageManager : MonoBehaviour
 {
     public static StageManager Instance;
@@ -29,6 +30,9 @@ public class StageManager : MonoBehaviour
     [SerializeField] private Transform playerRig;
     [SerializeField] private FadeController fadeController;
 
+    [Header("Holsters")]
+    [SerializeField] private WeaponHolster[] holsters; // asigná todos los holsters
+
     [Header("Settings")]
     [SerializeField] private float delayBetweenRounds = 0.5f;
     [SerializeField] private int maxSpawnAttempts = 30;
@@ -40,6 +44,7 @@ public class StageManager : MonoBehaviour
     private int currentRound = 0;
     private int trashRemaining = 0;
     private bool transitioning = false;
+    private bool roundCleared = false; // basura destruida, esperando holster
 
     private readonly List<GameObject> activeTrash = new List<GameObject>();
 
@@ -50,7 +55,24 @@ public class StageManager : MonoBehaviour
 
     private void Start()
     {
+        // Suscribirse al evento de cada holster
+        foreach (WeaponHolster holster in holsters)
+        {
+            if (holster != null)
+                holster.OnWeaponStored += OnAnyWeaponStored;
+        }
+
         LoadRound(0);
+    }
+
+    private void OnDestroy()
+    {
+        // Desuscribirse para evitar memory leaks
+        foreach (WeaponHolster holster in holsters)
+        {
+            if (holster != null)
+                holster.OnWeaponStored -= OnAnyWeaponStored;
+        }
     }
 
     // ─────────────────────────────────────────
@@ -61,11 +83,35 @@ public class StageManager : MonoBehaviour
     {
         trashRemaining--;
 
-        // Notificar al HUD
         RoundHUDDisplay.Instance?.RegisterDestroyed();
 
         if (trashRemaining <= 0 && !transitioning)
-            StartCoroutine(TransitionToNextRound());
+        {
+            roundCleared = true;
+            Debug.Log("[StageManager] ¡Basura limpia! Guardá el arma en el holster para continuar.");
+
+            // Aquí podés agregar un feedback al jugador (sonido, UI, etc.)
+        }
+    }
+
+    // ─────────────────────────────────────────
+    //  HOLSTER EVENT
+    // ─────────────────────────────────────────
+
+    private void OnAnyWeaponStored()
+    {
+        // Solo transiciona si la ronda está limpia y no está ya transitioning
+        if (!roundCleared || transitioning) return;
+
+        // Verificar que TODOS los holsters tengan arma guardada
+        // (si querés que solo baste con uno, sacá este chequeo)
+        foreach (WeaponHolster holster in holsters)
+        {
+            if (holster != null && !holster.IsStored)
+                return; // falta alguno
+        }
+
+        StartCoroutine(TransitionToNextRound());
     }
 
     // ─────────────────────────────────────────
@@ -75,6 +121,7 @@ public class StageManager : MonoBehaviour
     private IEnumerator TransitionToNextRound()
     {
         transitioning = true;
+        roundCleared = false;
 
         yield return StartCoroutine(fadeController.FadeOut());
 
@@ -108,17 +155,13 @@ public class StageManager : MonoBehaviour
         if (roundIndex >= rounds.Length) return;
 
         RoundConfig config = rounds[roundIndex];
-
         activeTrash.Clear();
 
-        // Dialogos
         DialogueManager.Instance?.PlayDialoguesForStage(roundIndex);
 
-        // Spawn
         int spawned = SpawnTrash(config);
         trashRemaining = spawned;
 
-        // Notificar al HUD con el total de esta ronda
         RoundHUDDisplay.Instance?.SetRoundTotal(spawned);
 
         Debug.Log($"[StageManager] Ronda {roundIndex + 1} — {spawned} objetos spawneados");
