@@ -27,13 +27,24 @@ public class TwoHandedGunGrip : MonoBehaviour
 
     [Header("Debug")]
     [SerializeField] private bool drawGizmos = true;
-    [SerializeField] private bool isTwoHanded = false; // visible en Inspector en runtime
+    [SerializeField] private bool isTwoHanded = false;   // visible en Inspector en runtime
+    [SerializeField] private bool isMainHandActive = false;
 
     private Rigidbody rb;
 
     // Posiciones de los controllers en world space
     private Vector3 rightHandPos;
     private Vector3 leftHandPos;
+
+    // ─────────────────────────────────────────
+    //  PROPIEDADES PÚBLICAS (para TrashGun)
+    // ─────────────────────────────────────────
+
+    /// <summary>True si la mano derecha está cerca del mango. TrashGun lo usa para permitir el disparo.</summary>
+    public bool IsMainHandActive => isMainHandActive;
+
+    /// <summary>True si ambas manos están activas (modo rifle estabilizado).</summary>
+    public bool IsTwoHanded => isTwoHanded;
 
     // ─────────────────────────────────────────
 
@@ -45,7 +56,9 @@ public class TwoHandedGunGrip : MonoBehaviour
     private void FixedUpdate()
     {
         UpdateHandPositions();
-        isTwoHanded = IsTwoHandedGrip();
+
+        isMainHandActive = IsRightHandNearMango();
+        isTwoHanded = isMainHandActive && IsLeftHandNearCanon();
 
         if (isTwoHanded)
             ApplyTwoHandedRotation();
@@ -57,13 +70,9 @@ public class TwoHandedGunGrip : MonoBehaviour
 
     private void UpdateHandPositions()
     {
-        // OVRInput da la posición local al tracking space;
-        // multiplicamos por el anchor del OVRCameraRig si existe,
-        // o usamos world space directamente.
         rightHandPos = OVRInput.GetLocalControllerPosition(OVRInput.Controller.RTouch);
         leftHandPos = OVRInput.GetLocalControllerPosition(OVRInput.Controller.LTouch);
 
-        // Si tenés un OVRCameraRig en la escena con tracking space, convertir a world:
         var trackingSpace = FindTrackingSpace();
         if (trackingSpace != null)
         {
@@ -72,7 +81,7 @@ public class TwoHandedGunGrip : MonoBehaviour
         }
     }
 
-    /// Cache del tracking space para no hacer Find cada frame
+    // Cache del tracking space para no hacer Find cada frame
     private Transform _trackingSpaceCache;
     private bool _trackingSpaceSearched = false;
 
@@ -81,29 +90,27 @@ public class TwoHandedGunGrip : MonoBehaviour
         if (_trackingSpaceSearched) return _trackingSpaceCache;
         _trackingSpaceSearched = true;
 
-        // El TrackingSpace es hijo del OVRCameraRig
         var rig = FindObjectOfType<OVRCameraRig>();
         _trackingSpaceCache = rig != null ? rig.trackingSpace : null;
         return _trackingSpaceCache;
     }
 
     // ─────────────────────────────────────────
-    //  DETECCIÓN DE AGARRE CON DOS MANOS
+    //  DETECCIÓN — separadas para poder reutilizarlas
     // ─────────────────────────────────────────
 
-    private bool IsTwoHandedGrip()
+    private bool IsRightHandNearMango()
     {
-        // Mano derecha cerca del mango
-        bool rightNearMain = mainAnchor != null &&
-                             Vector3.Distance(rightHandPos, mainAnchor.position) < grabRadius;
+        if (mainAnchor == null) return false;
+        return Vector3.Distance(rightHandPos, mainAnchor.position) < grabRadius;
+    }
 
-        // Mano izquierda cerca del cañón Y apretando grip
+    private bool IsLeftHandNearCanon()
+    {
+        if (forwardAnchor == null) return false;
         float leftGrip = OVRInput.Get(OVRInput.Axis1D.PrimaryHandTrigger, OVRInput.Controller.LTouch);
-        bool leftNearForward = forwardAnchor != null &&
-                               Vector3.Distance(leftHandPos, forwardAnchor.position) < grabRadius &&
-                               leftGrip > gripThreshold;
-
-        return rightNearMain && leftNearForward;
+        return Vector3.Distance(leftHandPos, forwardAnchor.position) < grabRadius
+               && leftGrip > gripThreshold;
     }
 
     // ─────────────────────────────────────────
@@ -114,7 +121,6 @@ public class TwoHandedGunGrip : MonoBehaviour
     {
         // El forward del rifle = vector de mano derecha → mano izquierda
         Vector3 aimDir = (leftHandPos - rightHandPos).normalized;
-
         if (aimDir == Vector3.zero) return;
 
         // Up estable: up del controller derecho
@@ -124,10 +130,8 @@ public class TwoHandedGunGrip : MonoBehaviour
         if (trackingSpace != null)
             rightHandUp = trackingSpace.TransformDirection(rightHandUp);
 
-        // Rotación objetivo
         Quaternion targetRot = Quaternion.LookRotation(aimDir, rightHandUp);
 
-        // Aplicar roll offset si el modelo necesita corrección
         if (rollOffset != 0f)
             targetRot *= Quaternion.Euler(0f, 0f, rollOffset);
 
@@ -145,21 +149,19 @@ public class TwoHandedGunGrip : MonoBehaviour
     {
         if (!drawGizmos) return;
 
-        // Anchors
         if (mainAnchor != null)
         {
-            Gizmos.color = Color.green;
+            Gizmos.color = isMainHandActive ? Color.green : new Color(0f, 1f, 0f, 0.3f);
             Gizmos.DrawWireSphere(mainAnchor.position, grabRadius);
             Gizmos.DrawRay(mainAnchor.position, mainAnchor.forward * 0.06f);
         }
         if (forwardAnchor != null)
         {
-            Gizmos.color = Color.cyan;
+            Gizmos.color = isTwoHanded ? Color.cyan : new Color(0f, 1f, 1f, 0.3f);
             Gizmos.DrawWireSphere(forwardAnchor.position, grabRadius);
             Gizmos.DrawRay(forwardAnchor.position, forwardAnchor.forward * 0.06f);
         }
 
-        // Línea de aim en runtime
         if (Application.isPlaying && isTwoHanded)
         {
             Gizmos.color = Color.yellow;

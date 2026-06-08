@@ -66,6 +66,10 @@ public class TrashGun : MonoBehaviour, IUpdatable
     [Header("Color")]
     [SerializeField] private GunModeColorizer colorizer;
 
+    [Header("Two-Handed Grip")]
+    [Tooltip("Referencia al script de dos manos. Si no está asignado, dispara con cualquier mano.")]
+    [SerializeField] private TwoHandedGunGrip twoHandedGrip;
+
     [Header("Haptics — Fire (uno por modo)")]
     [SerializeField]
     private HapticProfile[] hapticProfiles = new HapticProfile[]
@@ -244,7 +248,10 @@ public class TrashGun : MonoBehaviour, IUpdatable
 
     private void HandleFire()
     {
-        bool triggerPressed = IsIndexTriggerPressed();
+        // Solo dispara si la mano del mango (derecha) está activa
+        if (!IsMainHandHoldingGun()) return;
+
+        bool triggerPressed = IsRightTriggerPressed();
 
         switch (currentMode)
         {
@@ -285,6 +292,16 @@ public class TrashGun : MonoBehaviour, IUpdatable
     }
 
     private bool CanFire() => Time.time >= lastFireTime + fireRate;
+
+    /// <summary>
+    /// Devuelve true si la mano derecha tiene el mango agarrado.
+    /// Si no hay TwoHandedGrip asignado, siempre devuelve true (comportamiento original).
+    /// </summary>
+    private bool IsMainHandHoldingGun()
+    {
+        if (twoHandedGrip == null) return true;
+        return twoHandedGrip.IsMainHandActive;
+    }
 
     // ─────────────────────────────────────────
     //  FIRE MODES
@@ -391,11 +408,11 @@ public class TrashGun : MonoBehaviour, IUpdatable
             audioSource.PlayOneShot(shootSound);
     }
 
-    private bool IsIndexTriggerPressed()
+    /// <summary>Solo el trigger derecho dispara — la mano del mango.</summary>
+    private bool IsRightTriggerPressed()
     {
-        float left = OVRInput.Get(OVRInput.Axis1D.PrimaryIndexTrigger, OVRInput.Controller.LTouch);
         float right = OVRInput.Get(OVRInput.Axis1D.PrimaryIndexTrigger, OVRInput.Controller.RTouch);
-        return left > triggerThreshold || right > triggerThreshold;
+        return right > triggerThreshold;
     }
 
     private void OnDrawGizmosSelected()
