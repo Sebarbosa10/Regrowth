@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class StageManager : MonoBehaviour
 {
@@ -31,12 +32,15 @@ public class StageManager : MonoBehaviour
     [Header("Settings")]
     [SerializeField] private float delayBetweenRounds = 0.5f;
     [SerializeField] private int maxSpawnAttempts = 30;
+    [SerializeField] private float delayBeforeMainMenu = 1.5f;
+
+    [Header("Scene Names")]
+    [SerializeField] private string mainMenuSceneName = "MainMenu";
 
     private int currentRound = 0;
     private int trashRemaining = 0;
     private bool transitioning = false;
 
-    // Todos los objetos de basura vivos en la ronda actual
     private readonly List<GameObject> activeTrash = new List<GameObject>();
 
     private void Awake()
@@ -56,6 +60,9 @@ public class StageManager : MonoBehaviour
     public void OnTrashDestroyed()
     {
         trashRemaining--;
+
+        // Notificar al HUD
+        RoundHUDDisplay.Instance?.RegisterDestroyed();
 
         if (trashRemaining <= 0 && !transitioning)
             StartCoroutine(TransitionToNextRound());
@@ -77,8 +84,9 @@ public class StageManager : MonoBehaviour
 
         if (currentRound >= rounds.Length)
         {
-            Debug.Log("[StageManager] ¡Juego completado!");
-            // Aqui podras poner tu pantalla de fin / creditos
+            Debug.Log("[StageManager] ¡Juego completado! Volviendo al main menu...");
+            yield return new WaitForSeconds(delayBeforeMainMenu);
+            SceneManager.LoadScene(mainMenuSceneName);
             yield break;
         }
 
@@ -103,13 +111,15 @@ public class StageManager : MonoBehaviour
 
         activeTrash.Clear();
 
-
         // Dialogos
         DialogueManager.Instance?.PlayDialoguesForStage(roundIndex);
 
         // Spawn
         int spawned = SpawnTrash(config);
         trashRemaining = spawned;
+
+        // Notificar al HUD con el total de esta ronda
+        RoundHUDDisplay.Instance?.SetRoundTotal(spawned);
 
         Debug.Log($"[StageManager] Ronda {roundIndex + 1} — {spawned} objetos spawneados");
     }
@@ -140,7 +150,6 @@ public class StageManager : MonoBehaviour
                 continue;
             }
 
-            // Elegir prefab aleatorio de los disponibles para esta ronda
             GameObject prefab = config.trashPrefabs[Random.Range(0, config.trashPrefabs.Length)];
             if (prefab == null) continue;
 
@@ -158,7 +167,6 @@ public class StageManager : MonoBehaviour
 
         for (int attempt = 0; attempt < maxSpawnAttempts; attempt++)
         {
-            // Punto aleatorio DENTRO de la esfera (distribucion uniforme)
             Vector3 candidate = center + Random.insideUnitSphere * sphereRadius;
 
             float distToPlayer = Vector3.Distance(candidate, playerPos);
@@ -194,13 +202,11 @@ public class StageManager : MonoBehaviour
     {
         Vector3 center = sphereCenter != null ? sphereCenter.position : transform.position;
 
-        // Esfera de spawn
         Gizmos.color = new Color(0f, 1f, 0.4f, 0.15f);
         Gizmos.DrawSphere(center, sphereRadius);
         Gizmos.color = new Color(0f, 1f, 0.4f, 0.8f);
         Gizmos.DrawWireSphere(center, sphereRadius);
 
-        // Radio minimo alrededor del player
         Vector3 playerPos = playerRig != null ? playerRig.position : center;
         Gizmos.color = new Color(1f, 0.3f, 0.3f, 0.2f);
         Gizmos.DrawSphere(playerPos, minPlayerDistance);
