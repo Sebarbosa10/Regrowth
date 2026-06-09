@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-
 public class StageManager : MonoBehaviour
 {
     public static StageManager Instance;
@@ -21,9 +20,9 @@ public class StageManager : MonoBehaviour
     [Header("Rounds")]
     [SerializeField] private RoundConfig[] rounds = new RoundConfig[3];
 
-    [Header("Spawn Sphere")]
-    [SerializeField] private Transform sphereCenter;
-    [SerializeField] private float sphereRadius = 5f;
+    [Header("Spawn Box")]
+    [SerializeField] private Transform boxCenter;
+    [SerializeField] public Vector3 boxSize = new Vector3(10f, 3f, 10f);
     [SerializeField] private float minPlayerDistance = 1.5f;
 
     [Header("References")]
@@ -52,16 +51,13 @@ public class StageManager : MonoBehaviour
     private bool transitioning = false;
     private bool roundCleared = false;
     private bool roundStarted = false;
-    private int roundTotal = 0; // total spawneado en la ronda actual
+    private int roundTotal = 0;
 
     public int CurrentRound => currentRound;
 
     private readonly List<GameObject> activeTrash = new List<GameObject>();
 
-    private void Awake()
-    {
-        Instance = this;
-    }
+    private void Awake() { Instance = this; }
 
     private void Start()
     {
@@ -73,16 +69,13 @@ public class StageManager : MonoBehaviour
                 holster.OnWeaponRemoved += OnAnyWeaponRemoved;
             }
         }
-
         StartCoroutine(InitWithDelay());
     }
 
     private IEnumerator InitWithDelay()
     {
-        // Esperar dos frames para que todo esté inicializado
         yield return null;
         yield return null;
-
         ResetWeaponsToHolsters();
         LoadRound(0);
     }
@@ -100,15 +93,13 @@ public class StageManager : MonoBehaviour
     }
 
     // ─────────────────────────────────────────
-    //  PUBLIC — llamado por TrashObject
+    //  PUBLIC
     // ─────────────────────────────────────────
 
     public void OnTrashDestroyed()
     {
         trashRemaining--;
-
         RoundHUDDisplay.Instance?.RegisterDestroyed();
-
         NarrativeBeatManager.Instance?.OnTrashDestroyed(currentRound, trashRemaining, roundTotal);
 
         if (trashRemaining <= 0 && !transitioning && roundStarted)
@@ -130,17 +121,11 @@ public class StageManager : MonoBehaviour
         bool anyRemoved = false;
         foreach (WeaponHolster holster in holsters)
         {
-            if (holster != null && !holster.IsStored)
-            {
-                anyRemoved = true;
-                break;
-            }
+            if (holster != null && !holster.IsStored) { anyRemoved = true; break; }
         }
-
         if (!anyRemoved) return;
 
         NarrativeBeatManager.Instance?.OnFirstGrab();
-
         roundStarted = true;
         SpawnCurrentRound();
         Debug.Log("[StageManager] Arma sacada — spawneando basura!");
@@ -149,13 +134,10 @@ public class StageManager : MonoBehaviour
     private void OnAnyWeaponStored()
     {
         if (!roundCleared || transitioning) return;
-
         foreach (WeaponHolster holster in holsters)
         {
-            if (holster != null && !holster.IsStored)
-                return;
+            if (holster != null && !holster.IsStored) return;
         }
-
         StartCoroutine(TransitionToNextRound());
     }
 
@@ -170,7 +152,6 @@ public class StageManager : MonoBehaviour
             vacuumGun.transform.SetParent(null);
             vacuumHolster.ForceStore(vacuumGun);
         }
-
         if (trashGun != null && trashGunHolster != null)
         {
             trashGun.transform.SetParent(null);
@@ -189,15 +170,9 @@ public class StageManager : MonoBehaviour
         roundStarted = false;
 
         yield return StartCoroutine(fadeController.FadeOut());
-
         DestroyActiveTrash();
-
-        // Esperar un frame para que todo se limpie
         yield return null;
-
         ResetWeaponsToHolsters();
-
-        // Esperar otro frame para que el holster procese
         yield return null;
 
         currentRound++;
@@ -211,11 +186,8 @@ public class StageManager : MonoBehaviour
         }
 
         LoadRound(currentRound);
-
         yield return new WaitForSeconds(delayBetweenRounds);
-
         yield return StartCoroutine(fadeController.FadeIn());
-
         transitioning = false;
     }
 
@@ -226,12 +198,9 @@ public class StageManager : MonoBehaviour
     private void LoadRound(int roundIndex)
     {
         if (roundIndex >= rounds.Length) return;
-
         roundStarted = false;
         activeTrash.Clear();
-
         DialogueManager.Instance?.PlayDialoguesForStage(roundIndex);
-
         Debug.Log($"[StageManager] Ronda {roundIndex + 1} cargada — sacá el arma para empezar");
     }
 
@@ -252,7 +221,6 @@ public class StageManager : MonoBehaviour
 
         NarrativeBeatManager.Instance?.OnRoundStarted(currentRound);
         RoundHUDDisplay.Instance?.SetRoundTotal(spawned);
-
         Debug.Log($"[StageManager] Ronda {currentRound + 1} — {spawned} objetos spawneados");
     }
 
@@ -264,15 +232,13 @@ public class StageManager : MonoBehaviour
             return 0;
         }
 
-        Vector3 center = sphereCenter != null ? sphereCenter.position : transform.position;
+        Vector3 center = boxCenter != null ? boxCenter.position : transform.position;
         int spawned = 0;
 
         for (int i = 0; i < config.spawnCount; i++)
         {
             Vector3 spawnPos;
-            bool found = TryGetSpawnPosition(center, out spawnPos);
-
-            if (!found)
+            if (!TryGetSpawnPosition(center, out spawnPos))
             {
                 Debug.LogWarning($"[StageManager] No se encontro posicion valida para objeto {i}");
                 continue;
@@ -292,13 +258,17 @@ public class StageManager : MonoBehaviour
     private bool TryGetSpawnPosition(Vector3 center, out Vector3 result)
     {
         Vector3 playerPos = playerRig != null ? playerRig.position : Vector3.zero;
+        Vector3 half = boxSize * 0.5f;
 
         for (int attempt = 0; attempt < maxSpawnAttempts; attempt++)
         {
-            Vector3 candidate = center + Random.insideUnitSphere * sphereRadius;
+            Vector3 candidate = center + new Vector3(
+                Random.Range(-half.x, half.x),
+                Random.Range(-half.y, half.y),
+                Random.Range(-half.z, half.z)
+            );
 
-            float distToPlayer = Vector3.Distance(candidate, playerPos);
-            if (distToPlayer < minPlayerDistance)
+            if (Vector3.Distance(candidate, playerPos) < minPlayerDistance)
                 continue;
 
             result = candidate;
@@ -316,9 +286,7 @@ public class StageManager : MonoBehaviour
     private void DestroyActiveTrash()
     {
         foreach (GameObject obj in activeTrash)
-        {
             if (obj != null) Destroy(obj);
-        }
         activeTrash.Clear();
     }
 
@@ -328,17 +296,19 @@ public class StageManager : MonoBehaviour
 
     private void OnDrawGizmosSelected()
     {
-        Vector3 center = sphereCenter != null ? sphereCenter.position : transform.position;
+        Vector3 center = boxCenter != null ? boxCenter.position : transform.position;
 
-        Gizmos.color = new Color(0f, 1f, 0.4f, 0.15f);
-        Gizmos.DrawSphere(center, sphereRadius);
-        Gizmos.color = new Color(0f, 1f, 0.4f, 0.8f);
-        Gizmos.DrawWireSphere(center, sphereRadius);
+        // Caja de spawn
+        Gizmos.color = new Color(0f, 1f, 0.4f, 0.1f);
+        Gizmos.DrawCube(center, boxSize);
+        Gizmos.color = new Color(0f, 1f, 0.4f, 0.9f);
+        Gizmos.DrawWireCube(center, boxSize);
 
+        // Radio minimo del player
         Vector3 playerPos = playerRig != null ? playerRig.position : center;
         Gizmos.color = new Color(1f, 0.3f, 0.3f, 0.2f);
         Gizmos.DrawSphere(playerPos, minPlayerDistance);
-        Gizmos.color = new Color(1f, 0.3f, 0.3f, 0.8f);
+        Gizmos.color = new Color(1f, 0.3f, 0.3f, 0.9f);
         Gizmos.DrawWireSphere(playerPos, minPlayerDistance);
     }
 }
