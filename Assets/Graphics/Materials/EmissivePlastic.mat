@@ -99,7 +99,7 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
-    - Vector1_1D9A2AE: 0.01
+    - Vector1_1D9A2AE: 0.16
     - Vector1_EFE64959: 30
     - Vector1_FEFF47F1: 0
     - _AlphaClip: 0
@@ -113,6 +113,7 @@ Material:
     - _Cutoff: 0.5
     - _DetailAlbedoMapScale: 1
     - _DetailNormalMapScale: 1
+    - _Dissolve: 0
     - _DstBlend: 0
     - _DstBlendAlpha: 0
     - _EnvironmentReflections: 1
@@ -135,7 +136,7 @@ Material:
     - _WorkflowMode: 1
     - _ZWrite: 1
     m_Colors:
-    - Color_6DF76E71: {r: 21.361254, g: 21.361254, b: 21.361254, a: 0}
+    - Color_6DF76E71: {r: 0, g: 0.58431375, b: 1, a: 1}
     - _BaseColor: {r: 1, g: 0, b: 0.890306, a: 1}
     - _Color: {r: 1, g: 1, b: 1, a: 1}
     - _EmissionColor: {r: 1, g: 0, b: 0.7463875, a: 1}
