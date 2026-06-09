@@ -1,10 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections;
 
-/// <summary>
-/// Maneja los beats narrativos del juego en orden estricto.
-/// Se conecta al StageManager para recibir eventos de hitos.
-/// </summary>
 public class NarrativeBeatManager : MonoBehaviour
 {
     public static NarrativeBeatManager Instance { get; private set; }
@@ -20,13 +16,13 @@ public class NarrativeBeatManager : MonoBehaviour
 
     public enum BeatIndex
     {
-        GameStart = 0,  // Al entrar a la escena
-        FirstGrab = 1,  // Al agarrar la pistola por primera vez
-        Round1Complete = 2,  // Al completar stage 1
-        Round2HalfWay = 3,  // Al destruir mitad de basuras en stage 2
-        Round2Complete = 4,  // Al completar stage 2
-        Round3HalfWay = 5,  // Al destruir mitad de basuras en stage 3
-        Round3Complete = 6,  // Al completar stage 3 → va al menu
+        GameStart = 0,
+        FirstGrab = 1,
+        Round1Complete = 2,
+        Round2HalfWay = 3,
+        Round2Complete = 4,
+        Round3HalfWay = 5,
+        Round3Complete = 6,
     }
 
     [Header("Beats (en orden)")]
@@ -38,51 +34,61 @@ public class NarrativeBeatManager : MonoBehaviour
     [Header("Settings")]
     [SerializeField] private float gameStartDelay = 0.5f;
 
-    // Estado
     private bool firstGrabDone = false;
-    private bool halfwayFired = false; // se resetea por ronda
+    private bool halfwayFired = false;
     private bool isPlaying = false;
 
-    /// <summary>True mientras se está reproduciendo un beat narrativo.</summary>
     public bool IsPlaying => isPlaying;
 
     private void Awake()
     {
         if (Instance != null && Instance != this) { Destroy(gameObject); return; }
         Instance = this;
+        Debug.Log("[NarrativeBeat] Awake — Instance registrada");
     }
 
     private void Start()
     {
+        // Validar audio source
+        if (audioSource == null)
+            Debug.LogError("[NarrativeBeat] ¡Falta el AudioSource! Asignalo en el Inspector.");
+
+        // Validar beats
+        for (int i = 0; i < beats.Length; i++)
+        {
+            if (beats[i] == null || beats[i].clip == null)
+                Debug.LogWarning($"[NarrativeBeat] Beat [{i}] ({(BeatIndex)i}) no tiene clip asignado.");
+        }
+
         StartCoroutine(PlayBeatDelayed(BeatIndex.GameStart, gameStartDelay));
     }
 
     // ─────────────────────────────────────────
-    //  PUBLIC — llamados desde StageManager / TrashGun
+    //  PUBLIC
     // ─────────────────────────────────────────
 
-    /// <summary>Llamar cuando el jugador agarra el arma por primera vez.</summary>
     public void OnFirstGrab()
     {
+        Debug.Log("[NarrativeBeat] OnFirstGrab llamado");
         if (firstGrabDone) return;
         firstGrabDone = true;
         PlayBeat(BeatIndex.FirstGrab);
     }
 
-    /// <summary>Llamar desde StageManager cuando comienza una ronda nueva.</summary>
     public void OnRoundStarted(int roundIndex)
     {
+        Debug.Log($"[NarrativeBeat] OnRoundStarted ronda {roundIndex}");
         halfwayFired = false;
     }
 
-    /// <summary>Llamar desde StageManager cada vez que se destruye basura.</summary>
     public void OnTrashDestroyed(int roundIndex, int remaining, int total)
     {
-        // Halfway solo aplica a ronda 2 y 3 (index 1 y 2)
         if (!halfwayFired && (roundIndex == 1 || roundIndex == 2))
         {
             int half = Mathf.CeilToInt(total / 2f);
             int destroyed = total - remaining;
+
+            Debug.Log($"[NarrativeBeat] OnTrashDestroyed — ronda {roundIndex}, destruidos {destroyed}/{total}, half={half}");
 
             if (destroyed >= half)
             {
@@ -95,9 +101,9 @@ public class NarrativeBeatManager : MonoBehaviour
         }
     }
 
-    /// <summary>Llamar desde StageManager al completar una ronda.</summary>
     public void OnRoundCompleted(int roundIndex)
     {
+        Debug.Log($"[NarrativeBeat] OnRoundCompleted ronda {roundIndex}");
         switch (roundIndex)
         {
             case 0: PlayBeat(BeatIndex.Round1Complete); break;
@@ -113,18 +119,35 @@ public class NarrativeBeatManager : MonoBehaviour
     private void PlayBeat(BeatIndex index)
     {
         int i = (int)index;
-        if (beats == null || i >= beats.Length) return;
+        if (beats == null || i >= beats.Length)
+        {
+            Debug.LogError($"[NarrativeBeat] beats array null o index {i} fuera de rango (length={beats?.Length})");
+            return;
+        }
 
         Beat beat = beats[i];
-        if (beat == null) return;
-
-        Debug.Log($"[NarrativeBeat] ▶ {beat.name}");
-
-        if (audioSource != null && beat.clip != null)
+        if (beat == null)
         {
-            audioSource.PlayOneShot(beat.clip);
-            StartCoroutine(MarkPlayingFor(beat.clip.length));
+            Debug.LogError($"[NarrativeBeat] Beat [{i}] es null");
+            return;
         }
+
+        Debug.Log($"[NarrativeBeat] ▶ Reproduciendo beat [{i}]: '{beat.name}'");
+
+        if (audioSource == null)
+        {
+            Debug.LogError("[NarrativeBeat] AudioSource es null — no se puede reproducir");
+            return;
+        }
+
+        if (beat.clip == null)
+        {
+            Debug.LogWarning($"[NarrativeBeat] Beat '{beat.name}' no tiene AudioClip asignado");
+            return;
+        }
+
+        audioSource.PlayOneShot(beat.clip);
+        StartCoroutine(MarkPlayingFor(beat.clip.length));
     }
 
     private IEnumerator MarkPlayingFor(float duration)

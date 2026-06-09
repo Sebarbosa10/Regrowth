@@ -52,6 +52,7 @@ public class StageManager : MonoBehaviour
     private bool transitioning = false;
     private bool roundCleared = false;
     private bool roundStarted = false;
+    private int roundTotal = 0; // total spawneado en la ronda actual
 
     public int CurrentRound => currentRound;
 
@@ -108,9 +109,12 @@ public class StageManager : MonoBehaviour
 
         RoundHUDDisplay.Instance?.RegisterDestroyed();
 
+        NarrativeBeatManager.Instance?.OnTrashDestroyed(currentRound, trashRemaining, roundTotal);
+
         if (trashRemaining <= 0 && !transitioning && roundStarted)
         {
             roundCleared = true;
+            NarrativeBeatManager.Instance?.OnRoundCompleted(currentRound);
             Debug.Log("[StageManager] ¡Basura limpia! Guardá el arma en el holster para continuar.");
         }
     }
@@ -134,6 +138,8 @@ public class StageManager : MonoBehaviour
         }
 
         if (!anyRemoved) return;
+
+        NarrativeBeatManager.Instance?.OnFirstGrab();
 
         roundStarted = true;
         SpawnCurrentRound();
@@ -242,7 +248,9 @@ public class StageManager : MonoBehaviour
 
         int spawned = SpawnTrash(config);
         trashRemaining = spawned;
+        roundTotal = spawned;
 
+        NarrativeBeatManager.Instance?.OnRoundStarted(currentRound);
         RoundHUDDisplay.Instance?.SetRoundTotal(spawned);
 
         Debug.Log($"[StageManager] Ronda {currentRound + 1} — {spawned} objetos spawneados");
