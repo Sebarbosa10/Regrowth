@@ -2,9 +2,11 @@ using UnityEngine;
 using Oculus.Interaction;
 using System;
 
+
+
 public class WeaponHolster : MonoBehaviour, IUpdatable
 {
-    
+    [Header("Settings")]
     [SerializeField] private Transform snapPoint;
     [SerializeField] private float snapRadius = 0.3f;
     [SerializeField] private float maxDistance = 2.0f;
@@ -16,8 +18,8 @@ public class WeaponHolster : MonoBehaviour, IUpdatable
     private bool hasBeenGrabbed = false;
     private bool isLocked = false;
 
-    
     public event Action OnWeaponStored;
+    public event Action OnWeaponRemoved;
 
     private void Start()
     {
@@ -55,6 +57,8 @@ public class WeaponHolster : MonoBehaviour, IUpdatable
                 if (rb != null) rb.isKinematic = false;
                 weaponObject.transform.SetParent(null);
                 isStored = false;
+
+                OnWeaponRemoved?.Invoke();
             }
         }
         else if (hasBeenGrabbed && !isStored)
@@ -74,14 +78,19 @@ public class WeaponHolster : MonoBehaviour, IUpdatable
 
     public void Lock() => isLocked = true;
     public void Unlock() => isLocked = false;
-
     public bool IsStored => isStored;
 
     public void ForceStore(GameObject weapon)
     {
         weaponObject = weapon;
+
         WeaponMarker marker = weapon.GetComponent<WeaponMarker>();
         if (marker != null) marker.myHolster = this;
+
+        // Resetear estado antes de guardar
+        isStored = false;
+        hasBeenGrabbed = false;
+
         ForceReturnToHolster();
     }
 
@@ -101,15 +110,29 @@ public class WeaponHolster : MonoBehaviour, IUpdatable
         weaponObject.transform.localPosition = Vector3.zero;
         weaponObject.transform.localRotation = Quaternion.identity;
 
-        
         OnWeaponStored?.Invoke();
     }
 
     private void ForceReturnToHolster()
     {
+        // Limpiar parent anterior
         weaponObject.transform.SetParent(null);
+
+        Rigidbody rb = weaponObject.GetComponent<Rigidbody>();
+        if (rb != null)
+        {
+            rb.isKinematic = true;
+            rb.velocity = Vector3.zero;
+            rb.angularVelocity = Vector3.zero;
+        }
+
         weaponObject.transform.position = snapPoint.position;
         weaponObject.transform.rotation = snapPoint.rotation;
-        PlaceWeaponInHolster();
+
+        isStored = true;
+        hasBeenGrabbed = false;
+        weaponObject.transform.SetParent(snapPoint);
+        weaponObject.transform.localPosition = Vector3.zero;
+        weaponObject.transform.localRotation = Quaternion.identity;
     }
 }
