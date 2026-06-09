@@ -187,4 +187,4 @@ MonoBehaviour:
     m_RotationOrder: 4
   disableColliderDuringDissolve: 1
   dissolveSound: {fileID: 8300000, guid: ac4313103c956b74cb5b0308b7d52663, type: 3}
-  dissolveSoundVolume: 0.2
+  dissolveSoundVolume: 0.4
