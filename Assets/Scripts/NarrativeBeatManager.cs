@@ -39,29 +39,25 @@ public class NarrativeBeatManager : MonoBehaviour
 
     private bool firstGrabDone = false;
     private bool halfwayFired = false;
-    private bool isPlaying = false;
 
-    public bool IsPlaying => isPlaying;
+    // Contador de beats activos — IsPlaying es true mientras haya al menos uno sonando
+    private int activeBeatCount = 0;
+    public bool IsPlaying => activeBeatCount > 0;
 
     private void Awake()
     {
         if (Instance != null && Instance != this) { Destroy(gameObject); return; }
         Instance = this;
-        Debug.Log("[NarrativeBeat] Awake — Instance registrada");
     }
 
     private void Start()
     {
-        // Validar audio source
         if (audioSource == null)
-            Debug.LogError("[NarrativeBeat] ¡Falta el AudioSource! Asignalo en el Inspector.");
+            Debug.LogError("[NarrativeBeat] Falta el AudioSource.");
 
-        // Validar beats
         for (int i = 0; i < beats.Length; i++)
-        {
             if (beats[i] == null || beats[i].clip == null)
-                Debug.LogWarning($"[NarrativeBeat] Beat [{i}] ({(BeatIndex)i}) no tiene clip asignado.");
-        }
+                Debug.LogWarning($"[NarrativeBeat] Beat [{i}] ({(BeatIndex)i}) sin clip.");
 
         StartCoroutine(PlayBeatDelayed(BeatIndex.GameStart, gameStartDelay));
     }
@@ -72,7 +68,6 @@ public class NarrativeBeatManager : MonoBehaviour
 
     public void OnFirstGrab()
     {
-        Debug.Log("[NarrativeBeat] OnFirstGrab llamado");
         if (firstGrabDone) return;
         firstGrabDone = true;
         PlayBeat(BeatIndex.FirstGrab);
@@ -81,33 +76,26 @@ public class NarrativeBeatManager : MonoBehaviour
 
     public void OnRoundStarted(int roundIndex)
     {
-        Debug.Log($"[NarrativeBeat] OnRoundStarted ronda {roundIndex}");
         halfwayFired = false;
     }
 
     public void OnTrashDestroyed(int roundIndex, int remaining, int total)
     {
-        if (!halfwayFired && (roundIndex == 1 || roundIndex == 2))
+        if (halfwayFired) return;
+        if (roundIndex != 1 && roundIndex != 2) return;
+
+        int destroyed = total - remaining;
+        int half = Mathf.CeilToInt(total / 2f);
+
+        if (destroyed >= half)
         {
-            int half = Mathf.CeilToInt(total / 2f);
-            int destroyed = total - remaining;
-
-            Debug.Log($"[NarrativeBeat] OnTrashDestroyed — ronda {roundIndex}, destruidos {destroyed}/{total}, half={half}");
-
-            if (destroyed >= half)
-            {
-                halfwayFired = true;
-                BeatIndex beat = roundIndex == 1
-                    ? BeatIndex.Round2HalfWay
-                    : BeatIndex.Round3HalfWay;
-                PlayBeat(beat);
-            }
+            halfwayFired = true;
+            PlayBeat(roundIndex == 1 ? BeatIndex.Round2HalfWay : BeatIndex.Round3HalfWay);
         }
     }
 
     public void OnRoundCompleted(int roundIndex)
     {
-        Debug.Log($"[NarrativeBeat] OnRoundCompleted ronda {roundIndex}");
         switch (roundIndex)
         {
             case 0: PlayBeat(BeatIndex.Round1Complete); break;
@@ -123,42 +111,40 @@ public class NarrativeBeatManager : MonoBehaviour
     private void PlayBeat(BeatIndex index)
     {
         int i = (int)index;
+
         if (beats == null || i >= beats.Length)
         {
-            Debug.LogError($"[NarrativeBeat] beats array null o index {i} fuera de rango (length={beats?.Length})");
+            Debug.LogError($"[NarrativeBeat] Index {i} fuera de rango");
             return;
         }
 
         Beat beat = beats[i];
-        if (beat == null)
+
+        if (beat == null || beat.clip == null)
         {
-            Debug.LogError($"[NarrativeBeat] Beat [{i}] es null");
+            Debug.LogWarning($"[NarrativeBeat] Beat [{i}] sin clip — saltando");
             return;
         }
-
-        Debug.Log($"[NarrativeBeat] ▶ Reproduciendo beat [{i}]: '{beat.name}'");
 
         if (audioSource == null)
         {
-            Debug.LogError("[NarrativeBeat] AudioSource es null — no se puede reproducir");
+            Debug.LogError("[NarrativeBeat] AudioSource null");
             return;
         }
 
-        if (beat.clip == null)
-        {
-            Debug.LogWarning($"[NarrativeBeat] Beat '{beat.name}' no tiene AudioClip asignado");
-            return;
-        }
+        Debug.Log($"[NarrativeBeat] ▶ [{i}] '{beat.name}'");
 
+        // Usar PlayOneShot para que los beats no se corten entre si
         audioSource.PlayOneShot(beat.clip);
-        StartCoroutine(MarkPlayingFor(beat.clip.length));
+        StartCoroutine(TrackBeatDuration(beat.clip.length));
     }
 
-    private IEnumerator MarkPlayingFor(float duration)
+    
+    private IEnumerator TrackBeatDuration(float duration)
     {
-        isPlaying = true;
+        activeBeatCount++;
         yield return new WaitForSeconds(duration);
-        isPlaying = false;
+        activeBeatCount--;
     }
 
     private IEnumerator PlayBeatDelayed(BeatIndex index, float delay)

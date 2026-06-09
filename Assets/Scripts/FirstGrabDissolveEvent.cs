@@ -1,25 +1,29 @@
 ﻿using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
-/// <summary>
-/// Se activa cuando el jugador agarra el arma por primera vez (Beat 1).
-/// Llama a NarrativeBeatManager.OnFirstGrab() y anima dissolve en dos grupos:
-///   - disappearRoots: sus Renderers van de 0 → 1 (desaparecen)
-///   - appearRoots:    sus Renderers van de 1 → 0 (aparecen)
-/// Ponelo en cualquier GO de la escena y conectalo al holster o llamalo manual.
-/// </summary>
 public class FirstGrabDissolveEvent : MonoBehaviour
 {
     [Header("Grupos de meshes")]
-    [Tooltip("Raices cuyos Renderers van de 0 a 1 (desaparecen)")]
+    [Tooltip("Sus Renderers van de 0 a 1 (desaparecen)")]
     [SerializeField] private GameObject[] disappearRoots;
 
-    [Tooltip("Raices cuyos Renderers van de 1 a 0 (aparecen)")]
+    [Tooltip("Sus Renderers van de 1 a 0 (aparecen)")]
     [SerializeField] private GameObject[] appearRoots;
 
     [Header("Dissolve Settings")]
     [SerializeField] private float dissolveDuration = 1.2f;
     [SerializeField] private AnimationCurve dissolveCurve = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
+
+    [Header("Audio — Dissolve")]
+    [SerializeField] private AudioClip dissolveSound;
+    [SerializeField] private float dissolveSoundVolume = 1f;
+
+    [Header("Audio — Fade In")]
+    [Tooltip("El AudioSource cuyo volumen sube de 0 al target al disparar el evento")]
+    [SerializeField] private AudioSource fadeInAudioSource;
+    [SerializeField] private float fadeInTargetVolume = 1f;
+    [SerializeField] private float fadeInDuration = 1.2f;
 
     private static readonly int DissolveID = Shader.PropertyToID("_Dissolve");
     private MaterialPropertyBlock propBlock;
@@ -28,12 +32,12 @@ public class FirstGrabDissolveEvent : MonoBehaviour
     private void Awake()
     {
         propBlock = new MaterialPropertyBlock();
+
+        // Asegurarse de que el AudioSource arranca en silencio
+        if (fadeInAudioSource != null)
+            fadeInAudioSource.volume = 0f;
     }
 
-    /// <summary>
-    /// Llamar desde NarrativeBeatManager.OnFirstGrab() o desde el WeaponHolster.
-    /// Solo ejecuta una vez.
-    /// </summary>
     public void Trigger()
     {
         if (triggered) return;
@@ -43,37 +47,57 @@ public class FirstGrabDissolveEvent : MonoBehaviour
 
     private IEnumerator RunDissolves()
     {
-        // Cachear todos los renderers de cada grupo una sola vez
         Renderer[] toDisappear = CollectRenderers(disappearRoots);
         Renderer[] toAppear = CollectRenderers(appearRoots);
 
-        float t = 0f;
+        // Sonido del dissolve
+        if (dissolveSound != null)
+            AudioSource.PlayClipAtPoint(dissolveSound, transform.position, dissolveSoundVolume);
 
+        // Fade in del AudioSource en paralelo
+        if (fadeInAudioSource != null)
+            StartCoroutine(FadeInAudio());
+
+        float t = 0f;
         while (t < dissolveDuration)
         {
             t += Time.deltaTime;
-            float progress = Mathf.Clamp01(t / dissolveDuration);
-            float curve = dissolveCurve.Evaluate(progress);
+            float curve = dissolveCurve.Evaluate(Mathf.Clamp01(t / dissolveDuration));
 
-            // disappear: 0 → 1
             ApplyDissolve(toDisappear, curve);
-
-            // appear: 1 → 0
             ApplyDissolve(toAppear, 1f - curve);
 
             yield return null;
         }
 
-        // Valores finales exactos
         ApplyDissolve(toDisappear, 1f);
         ApplyDissolve(toAppear, 0f);
+    }
+
+    private IEnumerator FadeInAudio()
+    {
+        fadeInAudioSource.volume = 0f;
+
+        // Si no estaba reproduciendose, arrancarlo
+        if (!fadeInAudioSource.isPlaying)
+            fadeInAudioSource.Play();
+
+        float t = 0f;
+        while (t < fadeInDuration)
+        {
+            t += Time.deltaTime;
+            fadeInAudioSource.volume = Mathf.Lerp(0f, fadeInTargetVolume, t / fadeInDuration);
+            yield return null;
+        }
+
+        fadeInAudioSource.volume = fadeInTargetVolume;
     }
 
     private Renderer[] CollectRenderers(GameObject[] roots)
     {
         if (roots == null || roots.Length == 0) return System.Array.Empty<Renderer>();
 
-        var list = new System.Collections.Generic.List<Renderer>();
+        var list = new List<Renderer>();
         foreach (GameObject root in roots)
         {
             if (root == null) continue;
