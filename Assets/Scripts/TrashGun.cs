@@ -31,7 +31,10 @@ public class TrashGun : MonoBehaviour, IUpdatable
     [SerializeField] private float triggerThreshold = 0.7f;
 
     [Header("Fire Settings")]
+    [Tooltip("Single, Burst, Spread")]
     [SerializeField] private float fireRate = 0.3f;
+    [Tooltip("Auto — balas por segundo (ej: 10 = cadencia de SMG)")]
+    [SerializeField] private float autoFireRate = 0.08f;
 
     [Header("— Burst Settings")]
     [SerializeField] private int burstCount = 3;
@@ -122,11 +125,6 @@ public class TrashGun : MonoBehaviour, IUpdatable
         if (!held) return;
 
         DetectActiveController();
-
-        // Bloquear input durante beats narrativos
-        if (NarrativeBeatManager.Instance != null && NarrativeBeatManager.Instance.IsPlaying)
-            return;
-
         HandleModeSwitch();
         HandleFire();
     }
@@ -273,7 +271,11 @@ public class TrashGun : MonoBehaviour, IUpdatable
         triggerWasPressed = triggerPressed;
     }
 
-    private bool CanFire() => Time.time >= lastFireTime + fireRate;
+    private bool CanFire()
+    {
+        float rate = (currentMode == FireMode.Auto) ? autoFireRate : fireRate;
+        return Time.time >= lastFireTime + rate;
+    }
 
     private bool TryConsumeEnergy()
     {
