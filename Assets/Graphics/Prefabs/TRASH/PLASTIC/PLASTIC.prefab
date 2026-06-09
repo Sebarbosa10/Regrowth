@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 1311305821582912597}
   - component: {fileID: 8865568469918673320}
   - component: {fileID: 3629744718220105933}
+  - component: {fileID: -4477935330219045686}
   - component: {fileID: 4032189105387709279}
   m_Layer: 8
   m_Name: PLASTIC
@@ -97,6 +98,34 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a448f59e33177894599552cbf0458d8f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!114 &-4477935330219045686
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6676479092377899504}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 985ce11ae7f61dc4e911aa84df5b0c4f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  stageConfigs:
+  - bobAmplitude: 0.08
+    bobSpeed: 0.6
+    driftSpeed: 0.08
+    driftChangeInterval: 4
+    rotationSpeed: 8
+  - bobAmplitude: 0.15
+    bobSpeed: 1
+    driftSpeed: 0.15
+    driftChangeInterval: 3
+    rotationSpeed: 15
+  - bobAmplitude: 0.25
+    bobSpeed: 1.8
+    driftSpeed: 0.25
+    driftChangeInterval: 1.5
+    rotationSpeed: 30
 --- !u!65 &4032189105387709279
 BoxCollider:
   m_ObjectHideFlags: 0

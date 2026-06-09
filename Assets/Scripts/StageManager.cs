@@ -44,7 +44,8 @@ public class StageManager : MonoBehaviour
     private int currentRound = 0;
     private int trashRemaining = 0;
     private bool transitioning = false;
-    private bool roundCleared = false; 
+    private bool roundCleared = false;
+    public int CurrentRound => currentRound;
 
     private readonly List<GameObject> activeTrash = new List<GameObject>();
 

@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 8211126709120310516}
   - component: {fileID: 6939898109839871941}
   - component: {fileID: 2428720154637473250}
+  - component: {fileID: 611284408172772422}
   - component: {fileID: 4642935316900883965}
   m_Layer: 8
   m_Name: GLASS
@@ -97,6 +98,34 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a448f59e33177894599552cbf0458d8f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!114 &611284408172772422
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 44633058617286822}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 985ce11ae7f61dc4e911aa84df5b0c4f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  stageConfigs:
+  - bobAmplitude: 0.08
+    bobSpeed: 0.6
+    driftSpeed: 0.08
+    driftChangeInterval: 4
+    rotationSpeed: 8
+  - bobAmplitude: 0.15
+    bobSpeed: 1
+    driftSpeed: 0.15
+    driftChangeInterval: 3
+    rotationSpeed: 15
+  - bobAmplitude: 0.25
+    bobSpeed: 1.8
+    driftSpeed: 0.25
+    driftChangeInterval: 1.5
+    rotationSpeed: 30
 --- !u!65 &4642935316900883965
 BoxCollider:
   m_ObjectHideFlags: 0
