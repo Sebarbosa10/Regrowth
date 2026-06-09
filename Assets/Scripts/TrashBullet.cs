@@ -35,8 +35,8 @@ public class TrashBullet : MonoBehaviour
         if (impactSound != null)
             AudioSource.PlayClipAtPoint(impactSound, transform.position);
 
-        if (TrashDiscoveryManager.Instance != null)
-            TrashDiscoveryManager.Instance.OnTrashCollected(collision.gameObject);
+        //if (TrashDiscoveryManager.Instance != null)
+        //    TrashDiscoveryManager.Instance.OnTrashCollected(collision.gameObject);
 
         Destroy(collision.gameObject);
         Destroy(gameObject);

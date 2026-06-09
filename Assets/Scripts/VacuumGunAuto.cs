@@ -1,155 +1,155 @@
-using System.Collections.Generic;
-using UnityEngine;
-using Oculus.Interaction;
+//using System.Collections.Generic;
+//using UnityEngine;
+//using Oculus.Interaction;
 
-public class VacuumGunAuto : MonoBehaviour, IUpdatable
-{
-    [SerializeField] private Grabbable grabbable;
-    [SerializeField] private Transform suctionPoint;
-
-    
-    [SerializeField] private float coneRange = 3f;
-    [SerializeField] private float coneAngle = 30f;
-    [SerializeField] private float suctionSpeed = 3f;
-    [SerializeField] private float destroyDistance = 0.2f;
-    [SerializeField] private float triggerThreshold = 0.7f;
+//public class VacuumGunAuto : MonoBehaviour, IUpdatable
+//{
+//    [SerializeField] private Grabbable grabbable;
+//    [SerializeField] private Transform suctionPoint;
 
     
-    [SerializeField] private LayerMask vacuumableLayer;
+//    [SerializeField] private float coneRange = 3f;
+//    [SerializeField] private float coneAngle = 30f;
+//    [SerializeField] private float suctionSpeed = 3f;
+//    [SerializeField] private float destroyDistance = 0.2f;
+//    [SerializeField] private float triggerThreshold = 0.7f;
 
     
-    [SerializeField] private AudioSource audioSource;
-    [SerializeField] private AudioClip vacuumLoopSound;
-    [SerializeField] private AudioClip plasticAbsorbSound;
-    [SerializeField] private AudioClip glassAbsorbSound;
-    [SerializeField] private AudioClip organicAbsorbSound;
+//    [SerializeField] private LayerMask vacuumableLayer;
 
-    [SerializeField] private CustomUpdateManager updateManager;
+    
+//    [SerializeField] private AudioSource audioSource;
+//    [SerializeField] private AudioClip vacuumLoopSound;
+//    [SerializeField] private AudioClip plasticAbsorbSound;
+//    [SerializeField] private AudioClip glassAbsorbSound;
+//    [SerializeField] private AudioClip organicAbsorbSound;
 
-    private bool isVacuuming = false;
+//    [SerializeField] private CustomUpdateManager updateManager;
 
-    private void Reset() { grabbable = GetComponent<Grabbable>(); }
+//    private bool isVacuuming = false;
 
-    private void OnEnable()
-    {
-        if (updateManager != null) updateManager.Register(this);
-    }
+//    private void Reset() { grabbable = GetComponent<Grabbable>(); }
 
-    private void OnDisable()
-    {
-        if (updateManager != null) updateManager.Unregister(this);
-        StopVacuumSound();
-    }
+//    private void OnEnable()
+//    {
+//        if (updateManager != null) updateManager.Register(this);
+//    }
 
-    public void Tick(float deltaTime)
-    {
-        if (grabbable == null || suctionPoint == null)
-        {
-            StopVacuumSound();
-            return;
-        }
+//    private void OnDisable()
+//    {
+//        if (updateManager != null) updateManager.Unregister(this);
+//        StopVacuumSound();
+//    }
 
-        if (grabbable.SelectingPointsCount <= 0 || !IsIndexTriggerPressed())
-        {
-            StopVacuumSound();
-            return;
-        }
+//    public void Tick(float deltaTime)
+//    {
+//        if (grabbable == null || suctionPoint == null)
+//        {
+//            StopVacuumSound();
+//            return;
+//        }
 
-        PlayVacuumSound();
+//        if (grabbable.SelectingPointsCount <= 0 || !IsIndexTriggerPressed())
+//        {
+//            StopVacuumSound();
+//            return;
+//        }
 
-        Collider[] hits = Physics.OverlapSphere(
-            suctionPoint.position,
-            coneRange,
-            vacuumableLayer,
-            QueryTriggerInteraction.Ignore
-        );
+//        PlayVacuumSound();
 
-        foreach (Collider hit in hits)
-        {
-            if (hit == null || hit.gameObject == null) continue;
+//        Collider[] hits = Physics.OverlapSphere(
+//            suctionPoint.position,
+//            coneRange,
+//            vacuumableLayer,
+//            QueryTriggerInteraction.Ignore
+//        );
 
-            Vector3 dirToTrash = hit.transform.position - suctionPoint.position;
-            float distance = dirToTrash.magnitude;
-            float angle = Vector3.Angle(suctionPoint.forward, dirToTrash);
+//        foreach (Collider hit in hits)
+//        {
+//            if (hit == null || hit.gameObject == null) continue;
 
-            if (angle > coneAngle)
-                continue;
+//            Vector3 dirToTrash = hit.transform.position - suctionPoint.position;
+//            float distance = dirToTrash.magnitude;
+//            float angle = Vector3.Angle(suctionPoint.forward, dirToTrash);
 
-            if (distance <= destroyDistance)
-            {
+//            if (angle > coneAngle)
+//                continue;
+
+//            if (distance <= destroyDistance)
+//            {
               
-                if (TrashDiscoveryManager.Instance != null)
-                    TrashDiscoveryManager.Instance.OnTrashCollected(hit.gameObject);
+//                if (TrashDiscoveryManager.Instance != null)
+//                    TrashDiscoveryManager.Instance.OnTrashCollected(hit.gameObject);
 
-                PlayAbsorbSound(hit.gameObject.tag);
-                Destroy(hit.gameObject);
-                continue;
-            }
+//                PlayAbsorbSound(hit.gameObject.tag);
+//                Destroy(hit.gameObject);
+//                continue;
+//            }
 
-            hit.transform.position = Vector3.MoveTowards(
-                hit.transform.position,
-                suctionPoint.position,
-                suctionSpeed * deltaTime
-            );
-        }
-    }
+//            hit.transform.position = Vector3.MoveTowards(
+//                hit.transform.position,
+//                suctionPoint.position,
+//                suctionSpeed * deltaTime
+//            );
+//        }
+//    }
 
-    private void PlayVacuumSound()
-    {
-        if (audioSource == null || vacuumLoopSound == null || isVacuuming) return;
-        audioSource.clip = vacuumLoopSound;
-        audioSource.loop = true;
-        audioSource.Play();
-        isVacuuming = true;
-    }
+//    private void PlayVacuumSound()
+//    {
+//        if (audioSource == null || vacuumLoopSound == null || isVacuuming) return;
+//        audioSource.clip = vacuumLoopSound;
+//        audioSource.loop = true;
+//        audioSource.Play();
+//        isVacuuming = true;
+//    }
 
-    private void StopVacuumSound()
-    {
-        if (audioSource == null || !isVacuuming) return;
-        audioSource.Stop();
-        audioSource.loop = false;
-        isVacuuming = false;
-    }
+//    private void StopVacuumSound()
+//    {
+//        if (audioSource == null || !isVacuuming) return;
+//        audioSource.Stop();
+//        audioSource.loop = false;
+//        isVacuuming = false;
+//    }
 
-    private void PlayAbsorbSound(string tag)
-    {
-        if (audioSource == null) return;
+//    private void PlayAbsorbSound(string tag)
+//    {
+//        if (audioSource == null) return;
 
-        AudioClip clip = null;
+//        AudioClip clip = null;
 
-        switch (tag)
-        {
-            case "Plastic": clip = plasticAbsorbSound; break;
-            case "Glass": clip = glassAbsorbSound; break;
-            case "Organic": clip = organicAbsorbSound; break;
-        }
+//        switch (tag)
+//        {
+//            case "Plastic": clip = plasticAbsorbSound; break;
+//            case "Glass": clip = glassAbsorbSound; break;
+//            case "Organic": clip = organicAbsorbSound; break;
+//        }
 
-        if (clip != null)
-            audioSource.PlayOneShot(clip);
-    }
+//        if (clip != null)
+//            audioSource.PlayOneShot(clip);
+//    }
 
-    private bool IsIndexTriggerPressed()
-    {
-        float left = OVRInput.Get(OVRInput.Axis1D.PrimaryIndexTrigger, OVRInput.Controller.LTouch);
-        float right = OVRInput.Get(OVRInput.Axis1D.PrimaryIndexTrigger, OVRInput.Controller.RTouch);
-        return left > triggerThreshold || right > triggerThreshold;
-    }
+//    private bool IsIndexTriggerPressed()
+//    {
+//        float left = OVRInput.Get(OVRInput.Axis1D.PrimaryIndexTrigger, OVRInput.Controller.LTouch);
+//        float right = OVRInput.Get(OVRInput.Axis1D.PrimaryIndexTrigger, OVRInput.Controller.RTouch);
+//        return left > triggerThreshold || right > triggerThreshold;
+//    }
 
-    private void OnDrawGizmosSelected()
-    {
-        if (suctionPoint == null) return;
-        Gizmos.color = Color.cyan;
-        Vector3 forward = suctionPoint.forward * coneRange;
-        Vector3 right = Quaternion.Euler(0, coneAngle, 0) * suctionPoint.forward * coneRange;
-        Vector3 left = Quaternion.Euler(0, -coneAngle, 0) * suctionPoint.forward * coneRange;
-        Vector3 up = Quaternion.Euler(coneAngle, 0, 0) * suctionPoint.forward * coneRange;
-        Vector3 down = Quaternion.Euler(-coneAngle, 0, 0) * suctionPoint.forward * coneRange;
-        Gizmos.DrawRay(suctionPoint.position, forward);
-        Gizmos.DrawRay(suctionPoint.position, right);
-        Gizmos.DrawRay(suctionPoint.position, left);
-        Gizmos.DrawRay(suctionPoint.position, up);
-        Gizmos.DrawRay(suctionPoint.position, down);
-        Gizmos.color = Color.red;
-        Gizmos.DrawWireSphere(suctionPoint.position, destroyDistance);
-    }
-}
+//    private void OnDrawGizmosSelected()
+//    {
+//        if (suctionPoint == null) return;
+//        Gizmos.color = Color.cyan;
+//        Vector3 forward = suctionPoint.forward * coneRange;
+//        Vector3 right = Quaternion.Euler(0, coneAngle, 0) * suctionPoint.forward * coneRange;
+//        Vector3 left = Quaternion.Euler(0, -coneAngle, 0) * suctionPoint.forward * coneRange;
+//        Vector3 up = Quaternion.Euler(coneAngle, 0, 0) * suctionPoint.forward * coneRange;
+//        Vector3 down = Quaternion.Euler(-coneAngle, 0, 0) * suctionPoint.forward * coneRange;
+//        Gizmos.DrawRay(suctionPoint.position, forward);
+//        Gizmos.DrawRay(suctionPoint.position, right);
+//        Gizmos.DrawRay(suctionPoint.position, left);
+//        Gizmos.DrawRay(suctionPoint.position, up);
+//        Gizmos.DrawRay(suctionPoint.position, down);
+//        Gizmos.color = Color.red;
+//        Gizmos.DrawWireSphere(suctionPoint.position, destroyDistance);
+//    }
+//}

@@ -122,6 +122,11 @@ public class TrashGun : MonoBehaviour, IUpdatable
         if (!held) return;
 
         DetectActiveController();
+
+        // Bloquear input durante beats narrativos
+        if (NarrativeBeatManager.Instance != null && NarrativeBeatManager.Instance.IsPlaying)
+            return;
+
         HandleModeSwitch();
         HandleFire();
     }
@@ -349,8 +354,8 @@ public class TrashGun : MonoBehaviour, IUpdatable
                 if (impactSound != null)
                     AudioSource.PlayClipAtPoint(impactSound, hit.point);
 
-                if (TrashDiscoveryManager.Instance != null)
-                    TrashDiscoveryManager.Instance.OnTrashCollected(hit.collider.gameObject);
+                //if (TrashDiscoveryManager.Instance != null)
+                //    TrashDiscoveryManager.Instance.OnTrashCollected(hit.collider.gameObject);
 
                 Destroy(hit.collider.gameObject);
             }

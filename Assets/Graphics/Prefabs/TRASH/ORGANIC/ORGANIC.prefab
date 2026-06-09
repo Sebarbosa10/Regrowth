@@ -14,6 +14,7 @@ GameObject:
   - component: {fileID: 4454535892849500411}
   - component: {fileID: -8326709827797880047}
   - component: {fileID: 1593308570642733219}
+  - component: {fileID: 2981615929605803559}
   m_Layer: 8
   m_Name: ORGANIC
   m_TagString: Organic
@@ -147,3 +148,41 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.0015474749, y: 0.0017999707, z: 0.00081451744}
   m_Center: {x: -0.00047337054, y: 0.0008999854, z: 0.00020835517}
+--- !u!114 &2981615929605803559
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1364673747052621541}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 597b8e0cfb6a7c241864af3bd220b8e9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  dissolveDuration: 0.5
+  dissolveCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  disableColliderDuringDissolve: 1

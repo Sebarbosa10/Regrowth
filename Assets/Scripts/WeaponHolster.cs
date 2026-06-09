@@ -71,6 +71,10 @@ public class WeaponHolster : MonoBehaviour, IUpdatable
             }
             else if (Vector3.Distance(transform.position, weaponObject.transform.position) < snapRadius)
             {
+                // No aceptar el arma mientras suena un beat narrativo
+                if (NarrativeBeatManager.Instance != null && NarrativeBeatManager.Instance.IsPlaying)
+                    return;
+
                 PlaceWeaponInHolster();
             }
         }
