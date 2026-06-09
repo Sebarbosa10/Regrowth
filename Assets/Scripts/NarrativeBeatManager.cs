@@ -34,6 +34,9 @@ public class NarrativeBeatManager : MonoBehaviour
     [Header("Settings")]
     [SerializeField] private float gameStartDelay = 0.5f;
 
+    [Header("First Grab Event")]
+    [SerializeField] private FirstGrabDissolveEvent firstGrabDissolveEvent;
+
     private bool firstGrabDone = false;
     private bool halfwayFired = false;
     private bool isPlaying = false;
@@ -73,6 +76,7 @@ public class NarrativeBeatManager : MonoBehaviour
         if (firstGrabDone) return;
         firstGrabDone = true;
         PlayBeat(BeatIndex.FirstGrab);
+        firstGrabDissolveEvent?.Trigger();
     }
 
     public void OnRoundStarted(int roundIndex)
