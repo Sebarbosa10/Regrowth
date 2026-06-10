@@ -77,6 +77,7 @@ public class StageManager : MonoBehaviour
         yield return null;
         yield return null;
         ResetWeaponsToHolsters();
+        SetWeaponsGrabbable(true); // armas disponibles al inicio
         LoadRound(0);
     }
 
@@ -145,6 +146,26 @@ public class StageManager : MonoBehaviour
     //  WEAPONS
     // ─────────────────────────────────────────
 
+    private void SetWeaponsGrabbable(bool state)
+    {
+        SetWeaponInteractable(vacuumGun, state);
+        SetWeaponInteractable(trashGun, state);
+    }
+
+    private void SetWeaponInteractable(GameObject weapon, bool state)
+    {
+        if (weapon == null) return;
+
+        foreach (var interactable in weapon.GetComponentsInChildren<Oculus.Interaction.HandGrab.HandGrabInteractable>(true))
+            interactable.enabled = state;
+
+        foreach (var interactable in weapon.GetComponentsInChildren<Oculus.Interaction.GrabInteractable>(true))
+            interactable.enabled = state;
+
+        foreach (var interactable in weapon.GetComponentsInChildren<Oculus.Interaction.Grabbable>(true))
+            interactable.enabled = state;
+    }
+
     private void ResetWeaponsToHolsters()
     {
         if (vacuumGun != null && vacuumHolster != null)
@@ -169,10 +190,19 @@ public class StageManager : MonoBehaviour
         roundCleared = false;
         roundStarted = false;
 
+        // Bloquear todo
+        SetWeaponsGrabbable(false);
+        vacuumHolster?.Lock();
+        trashGunHolster?.Lock();
+
         yield return StartCoroutine(fadeController.FadeOut());
+
         DestroyActiveTrash();
+
         yield return null;
+
         ResetWeaponsToHolsters();
+
         yield return null;
 
         currentRound++;
@@ -186,8 +216,16 @@ public class StageManager : MonoBehaviour
         }
 
         LoadRound(currentRound);
+
         yield return new WaitForSeconds(delayBetweenRounds);
+
         yield return StartCoroutine(fadeController.FadeIn());
+
+        // Desbloquear todo después del fade
+        vacuumHolster?.Unlock();
+        trashGunHolster?.Unlock();
+        SetWeaponsGrabbable(true);
+
         transitioning = false;
     }
 
@@ -298,13 +336,11 @@ public class StageManager : MonoBehaviour
     {
         Vector3 center = boxCenter != null ? boxCenter.position : transform.position;
 
-        // Caja de spawn
         Gizmos.color = new Color(0f, 1f, 0.4f, 0.1f);
         Gizmos.DrawCube(center, boxSize);
         Gizmos.color = new Color(0f, 1f, 0.4f, 0.9f);
         Gizmos.DrawWireCube(center, boxSize);
 
-        // Radio minimo del player
         Vector3 playerPos = playerRig != null ? playerRig.position : center;
         Gizmos.color = new Color(1f, 0.3f, 0.3f, 0.2f);
         Gizmos.DrawSphere(playerPos, minPlayerDistance);
