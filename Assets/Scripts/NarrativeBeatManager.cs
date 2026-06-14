@@ -36,6 +36,10 @@ public class NarrativeBeatManager : MonoBehaviour
     [Header("First Grab Event")]
     [SerializeField] private FirstGrabDissolveEvent firstGrabDissolveEvent;
 
+    [Header("Indicador visual")]
+    [Tooltip("Se activa cuando empieza a sonar un beat y se desactiva cuando termina")]
+    [SerializeField] private GameObject beatIndicatorObject;
+
     private int activeBeatCount = 0;
     public bool IsPlaying => activeBeatCount > 0;
 
@@ -54,6 +58,9 @@ public class NarrativeBeatManager : MonoBehaviour
             if (beats[i] == null || beats[i].clip == null)
                 Debug.LogWarning($"[NarrativeBeat] Beat [{i}] ({(BeatIndex)i}) sin clip.");
 
+        if (beatIndicatorObject != null)
+            beatIndicatorObject.SetActive(false);
+
         StartCoroutine(PlayBeatDelayed(BeatIndex.GameStart, gameStartDelay));
     }
 
@@ -61,19 +68,11 @@ public class NarrativeBeatManager : MonoBehaviour
     //  PUBLIC
     // ─────────────────────────────────────────
 
-    /// <summary>
-    /// Round 0: el dissolve que revela la basura jugable
-    /// se dispara cuando el jugador saca el arma por primera vez.
-    /// </summary>
     public void OnFirstGrab()
     {
         firstGrabDissolveEvent?.Trigger();
     }
 
-    /// <summary>
-    /// Inicio de ronda (1 y 2): primero suena el beat de audio,
-    /// y cuando termina, se dispara el dissolve que revela la basura.
-    /// </summary>
     public void OnRoundStarted(int roundIndex)
     {
         switch (roundIndex)
@@ -86,11 +85,6 @@ public class NarrativeBeatManager : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Fin de ronda: el dissolve se dispara de inmediato (oculta la basura/escena),
-    /// y el audio suena en paralelo. El StageManager espera a que el audio
-    /// termine antes de hacer el fade y pasar de stage.
-    /// </summary>
     public void OnRoundCompleted(int roundIndex)
     {
         firstGrabDissolveEvent?.Trigger();
@@ -111,7 +105,6 @@ public class NarrativeBeatManager : MonoBehaviour
     {
         PlayBeat(index);
 
-        // Esperar a que termine completamente el audio
         yield return new WaitWhile(() => IsPlaying);
 
         firstGrabDissolveEvent?.Trigger();
@@ -150,8 +143,16 @@ public class NarrativeBeatManager : MonoBehaviour
     private IEnumerator TrackBeatDuration(float duration)
     {
         activeBeatCount++;
+
+        if (beatIndicatorObject != null)
+            beatIndicatorObject.SetActive(true);
+
         yield return new WaitForSeconds(duration);
+
         activeBeatCount--;
+
+        if (activeBeatCount <= 0 && beatIndicatorObject != null)
+            beatIndicatorObject.SetActive(false);
     }
 
     private IEnumerator PlayBeatDelayed(BeatIndex index, float delay)
