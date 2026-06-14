@@ -125,6 +125,11 @@ public class TrashGun : MonoBehaviour, IUpdatable
         if (!held) return;
 
         DetectActiveController();
+
+        // Bloquear todo input durante beats narrativos
+        if (NarrativeBeatManager.Instance != null && NarrativeBeatManager.Instance.IsPlaying)
+            return;
+
         HandleModeSwitch();
         HandleFire();
     }

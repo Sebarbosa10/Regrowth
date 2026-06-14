@@ -44,15 +44,27 @@ public class WeaponHolster : MonoBehaviour, IUpdatable
     {
         if (isLocked || playerTransform == null || weaponObject == null) return;
 
+        bool beatPlaying = NarrativeBeatManager.Instance != null && NarrativeBeatManager.Instance.IsPlaying;
+
         Grabbable grab = weaponObject.GetComponentInChildren<Grabbable>();
         bool isBeingHeld = (grab != null && grab.SelectingPointsCount > 0);
 
         if (isBeingHeld)
         {
+            // No permitir sacar el arma mientras suena un beat
+            if (beatPlaying && !isStored)
+            {
+                // Ya está fuera — no hacer nada, pero tampoco registrar el grab
+                return;
+            }
+
             hasBeenGrabbed = true;
 
             if (isStored)
             {
+                // Bloquear sacar del holster durante beat
+                if (beatPlaying) return;
+
                 Rigidbody rb = weaponObject.GetComponent<Rigidbody>();
                 if (rb != null) rb.isKinematic = false;
                 weaponObject.transform.SetParent(null);
@@ -71,9 +83,8 @@ public class WeaponHolster : MonoBehaviour, IUpdatable
             }
             else if (Vector3.Distance(transform.position, weaponObject.transform.position) < snapRadius)
             {
-                // No aceptar el arma mientras suena un beat narrativo
-                if (NarrativeBeatManager.Instance != null && NarrativeBeatManager.Instance.IsPlaying)
-                    return;
+                // Bloquear guardar durante beat
+                if (beatPlaying) return;
 
                 PlaceWeaponInHolster();
             }
