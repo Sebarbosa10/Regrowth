@@ -124,7 +124,11 @@ public class StageManager : MonoBehaviour
         }
         if (!anyRemoved) return;
 
-        NarrativeBeatManager.Instance?.OnFirstGrab();
+        // Solo en la ronda 0 el dissolve lo dispara el primer agarre.
+        // En rondas 1 y 2, el dissolve ya lo maneja el beat de audio (PlayBeatThenDissolve).
+        if (currentRound == 0)
+            NarrativeBeatManager.Instance?.OnFirstGrab();
+
         roundStarted = true;
         SpawnCurrentRound();
         Debug.Log("[StageManager] Arma sacada — spawneando basura!");
