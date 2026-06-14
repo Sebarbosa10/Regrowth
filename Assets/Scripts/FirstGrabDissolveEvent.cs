@@ -66,11 +66,11 @@ public class FirstGrabDissolveEvent : MonoBehaviour
             StartCoroutine(FadeAudio(toToggledState));
 
         // Valores iniciales y finales según dirección
-        float disappearFrom = toToggledState ? 0f : 1f;
-        float disappearTo = toToggledState ? 1f : 0f;
+        float disappearFrom = toToggledState ? 0f : 2f;
+        float disappearTo = toToggledState ? 2f : 0f;
 
-        float appearFrom = toToggledState ? 1f : 0f;
-        float appearTo = toToggledState ? 0f : 1f;
+        float appearFrom = toToggledState ? 2f : 0f;
+        float appearTo = toToggledState ? 0f : 2f;
 
         float t = 0f;
         while (t < dissolveDuration)
