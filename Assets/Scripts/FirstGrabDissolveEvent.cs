@@ -5,10 +5,9 @@ using UnityEngine;
 public class FirstGrabDissolveEvent : MonoBehaviour
 {
     [Header("Grupos de meshes")]
-    [Tooltip("Sus Renderers van de 0 a 1 (desaparecen)")]
+    [Tooltip("Sus Renderers van de 0 a 1 (desaparecen) en el primer trigger")]
     [SerializeField] private GameObject[] disappearRoots;
-
-    [Tooltip("Sus Renderers van de 1 a 0 (aparecen)")]
+    [Tooltip("Sus Renderers van de 1 a 0 (aparecen) en el primer trigger")]
     [SerializeField] private GameObject[] appearRoots;
 
     [Header("Dissolve Settings")]
@@ -20,43 +19,58 @@ public class FirstGrabDissolveEvent : MonoBehaviour
     [SerializeField] private float dissolveSoundVolume = 1f;
 
     [Header("Audio — Fade In")]
-    [Tooltip("El AudioSource cuyo volumen sube de 0 al target al disparar el evento")]
+    [Tooltip("El AudioSource cuyo volumen sube de 0 al target en el primer trigger")]
     [SerializeField] private AudioSource fadeInAudioSource;
     [SerializeField] private float fadeInTargetVolume = 1f;
     [SerializeField] private float fadeInDuration = 1.2f;
 
     private static readonly int DissolveID = Shader.PropertyToID("_Dissolve");
     private MaterialPropertyBlock propBlock;
-    private bool triggered = false;
+
+    // false = estado inicial (disappearRoots visibles, appearRoots ocultos)
+    // true  = estado invertido (disappearRoots ocultos, appearRoots visibles)
+    private bool toggled = false;
+
+    private bool isRunning = false;
 
     private void Awake()
     {
         propBlock = new MaterialPropertyBlock();
 
-        // Asegurarse de que el AudioSource arranca en silencio
         if (fadeInAudioSource != null)
             fadeInAudioSource.volume = 0f;
     }
 
+    
     public void Trigger()
     {
-        if (triggered) return;
-        triggered = true;
-        StartCoroutine(RunDissolves());
+        if (isRunning) return; // evita solapar mientras está corriendo
+
+        bool goingToToggled = !toggled;
+        toggled = goingToToggled;
+
+        StartCoroutine(RunDissolves(goingToToggled));
     }
 
-    private IEnumerator RunDissolves()
+    private IEnumerator RunDissolves(bool toToggledState)
     {
+        isRunning = true;
+
         Renderer[] toDisappear = CollectRenderers(disappearRoots);
         Renderer[] toAppear = CollectRenderers(appearRoots);
 
-        // Sonido del dissolve
         if (dissolveSound != null)
             AudioSource.PlayClipAtPoint(dissolveSound, transform.position, dissolveSoundVolume);
 
-        // Fade in del AudioSource en paralelo
         if (fadeInAudioSource != null)
-            StartCoroutine(FadeInAudio());
+            StartCoroutine(FadeAudio(toToggledState));
+
+        // Valores iniciales y finales según dirección
+        float disappearFrom = toToggledState ? 0f : 1f;
+        float disappearTo = toToggledState ? 1f : 0f;
+
+        float appearFrom = toToggledState ? 1f : 0f;
+        float appearTo = toToggledState ? 0f : 1f;
 
         float t = 0f;
         while (t < dissolveDuration)
@@ -64,33 +78,39 @@ public class FirstGrabDissolveEvent : MonoBehaviour
             t += Time.deltaTime;
             float curve = dissolveCurve.Evaluate(Mathf.Clamp01(t / dissolveDuration));
 
-            ApplyDissolve(toDisappear, curve);
-            ApplyDissolve(toAppear, 1f - curve);
+            ApplyDissolve(toDisappear, Mathf.Lerp(disappearFrom, disappearTo, curve));
+            ApplyDissolve(toAppear, Mathf.Lerp(appearFrom, appearTo, curve));
 
             yield return null;
         }
 
-        ApplyDissolve(toDisappear, 1f);
-        ApplyDissolve(toAppear, 0f);
+        ApplyDissolve(toDisappear, disappearTo);
+        ApplyDissolve(toAppear, appearTo);
+
+        isRunning = false;
     }
 
-    private IEnumerator FadeInAudio()
+    private IEnumerator FadeAudio(bool toToggledState)
     {
-        fadeInAudioSource.volume = 0f;
+        // toToggledState true -> sube volumen, false -> baja volumen
+        float from = fadeInAudioSource.volume;
+        float to = toToggledState ? fadeInTargetVolume : 0f;
 
-        // Si no estaba reproduciendose, arrancarlo
-        if (!fadeInAudioSource.isPlaying)
+        if (toToggledState && !fadeInAudioSource.isPlaying)
             fadeInAudioSource.Play();
 
         float t = 0f;
         while (t < fadeInDuration)
         {
             t += Time.deltaTime;
-            fadeInAudioSource.volume = Mathf.Lerp(0f, fadeInTargetVolume, t / fadeInDuration);
+            fadeInAudioSource.volume = Mathf.Lerp(from, to, t / fadeInDuration);
             yield return null;
         }
 
-        fadeInAudioSource.volume = fadeInTargetVolume;
+        fadeInAudioSource.volume = to;
+
+        if (!toToggledState)
+            fadeInAudioSource.Stop();
     }
 
     private Renderer[] CollectRenderers(GameObject[] roots)

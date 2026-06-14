@@ -36,8 +36,6 @@ public class NarrativeBeatManager : MonoBehaviour
     [Header("First Grab Event")]
     [SerializeField] private FirstGrabDissolveEvent firstGrabDissolveEvent;
 
-
-    // Contador de beats activos — IsPlaying es true mientras haya al menos uno sonando
     private int activeBeatCount = 0;
     public bool IsPlaying => activeBeatCount > 0;
 
@@ -63,25 +61,40 @@ public class NarrativeBeatManager : MonoBehaviour
     //  PUBLIC
     // ─────────────────────────────────────────
 
+    /// <summary>
+    /// Round 0: el dissolve que revela la basura jugable
+    /// se dispara cuando el jugador saca el arma por primera vez.
+    /// </summary>
     public void OnFirstGrab()
     {
         firstGrabDissolveEvent?.Trigger();
     }
 
+    /// <summary>
+    /// Inicio de ronda (1 y 2): primero suena el beat de audio,
+    /// y cuando termina, se dispara el dissolve que revela la basura.
+    /// </summary>
     public void OnRoundStarted(int roundIndex)
     {
         switch (roundIndex)
         {
-            case 1: PlayBeat(BeatIndex.Round2Start); break;
-            case 2: PlayBeat(BeatIndex.Round3Start); break;
-                // Ronda 0 no tiene beat de inicio, arranca con GameStart
+            case 1: StartCoroutine(PlayBeatThenDissolve(BeatIndex.Round2Start)); break;
+            case 2: StartCoroutine(PlayBeatThenDissolve(BeatIndex.Round3Start)); break;
+            default:
+                // Ronda 0 — el dissolve lo dispara OnFirstGrab
+                break;
         }
     }
 
-
-
+    /// <summary>
+    /// Fin de ronda: el dissolve se dispara de inmediato (oculta la basura/escena),
+    /// y el audio suena en paralelo. El StageManager espera a que el audio
+    /// termine antes de hacer el fade y pasar de stage.
+    /// </summary>
     public void OnRoundCompleted(int roundIndex)
     {
+        firstGrabDissolveEvent?.Trigger();
+
         switch (roundIndex)
         {
             case 0: PlayBeat(BeatIndex.Round1End); break;
@@ -93,6 +106,16 @@ public class NarrativeBeatManager : MonoBehaviour
     // ─────────────────────────────────────────
     //  INTERNALS
     // ─────────────────────────────────────────
+
+    private IEnumerator PlayBeatThenDissolve(BeatIndex index)
+    {
+        PlayBeat(index);
+
+        // Esperar a que termine completamente el audio
+        yield return new WaitWhile(() => IsPlaying);
+
+        firstGrabDissolveEvent?.Trigger();
+    }
 
     private void PlayBeat(BeatIndex index)
     {
@@ -120,11 +143,9 @@ public class NarrativeBeatManager : MonoBehaviour
 
         Debug.Log($"[NarrativeBeat] ▶ [{i}] '{beat.name}'");
 
-        // Usar PlayOneShot para que los beats no se corten entre si
         audioSource.PlayOneShot(beat.clip);
         StartCoroutine(TrackBeatDuration(beat.clip.length));
     }
-
 
     private IEnumerator TrackBeatDuration(float duration)
     {

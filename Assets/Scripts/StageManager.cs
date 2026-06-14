@@ -188,13 +188,17 @@ public class StageManager : MonoBehaviour
         roundCleared = false;
         roundStarted = false;
 
-        // Beat de fin de ronda — suena antes del fade
-        NarrativeBeatManager.Instance?.OnRoundCompleted(currentRound);
-
-        // Bloquear todo
+        // Bloquear todo de entrada — nadie puede tocar nada durante la transición
         SetWeaponsGrabbable(false);
         vacuumHolster?.Lock();
         trashGunHolster?.Lock();
+
+        // Beat de fin de ronda
+        NarrativeBeatManager.Instance?.OnRoundCompleted(currentRound);
+
+        // Esperar a que termine completamente el audio del beat de fin de ronda
+        yield return new WaitUntil(() =>
+            NarrativeBeatManager.Instance == null || !NarrativeBeatManager.Instance.IsPlaying);
 
         yield return StartCoroutine(fadeController.FadeOut());
 
