@@ -33,8 +33,8 @@ public class NarrativeBeatManager : MonoBehaviour
     [Header("Settings")]
     [SerializeField] private float gameStartDelay = 0.5f;
 
-    [Header("First Grab Event")]
-    [SerializeField] private FirstGrabDissolveEvent firstGrabDissolveEvent;
+    [Header("Scene Dissolve")]
+    [SerializeField] private SceneDissolveEvent sceneDissolveEvent;
 
 
     // Contador de beats activos — IsPlaying es true mientras haya al menos uno sonando
@@ -65,7 +65,7 @@ public class NarrativeBeatManager : MonoBehaviour
 
     public void OnFirstGrab()
     {
-        firstGrabDissolveEvent?.Trigger();
+        sceneDissolveEvent?.TriggerFirstGrab();
     }
 
     public void OnRoundStarted(int roundIndex)
