@@ -16,17 +16,16 @@ public class NarrativeBeatManager : MonoBehaviour
 
     public enum BeatIndex
     {
-        GameStart = 0,
-        FirstGrab = 1,
-        Round1Complete = 2,
-        Round2HalfWay = 3,
-        Round2Complete = 4,
-        Round3HalfWay = 5,
-        Round3Complete = 6,
+        GameStart = 0,  // Al entrar a la escena
+        Round1End = 1,  // Al terminar ronda 1
+        Round2Start = 2,  // Al iniciar ronda 2
+        Round2End = 3,  // Al terminar ronda 2
+        Round3Start = 4,  // Al iniciar ronda 3
+        Round3End = 5,  // Al terminar ronda 3
     }
 
     [Header("Beats (en orden)")]
-    [SerializeField] private Beat[] beats = new Beat[7];
+    [SerializeField] private Beat[] beats = new Beat[6];
 
     [Header("Audio")]
     [SerializeField] private AudioSource audioSource;
@@ -37,8 +36,6 @@ public class NarrativeBeatManager : MonoBehaviour
     [Header("First Grab Event")]
     [SerializeField] private FirstGrabDissolveEvent firstGrabDissolveEvent;
 
-    private bool firstGrabDone = false;
-    private bool halfwayFired = false;
 
     // Contador de beats activos — IsPlaying es true mientras haya al menos uno sonando
     private int activeBeatCount = 0;
@@ -68,39 +65,28 @@ public class NarrativeBeatManager : MonoBehaviour
 
     public void OnFirstGrab()
     {
-        if (firstGrabDone) return;
-        firstGrabDone = true;
-        PlayBeat(BeatIndex.FirstGrab);
         firstGrabDissolveEvent?.Trigger();
     }
 
     public void OnRoundStarted(int roundIndex)
     {
-        halfwayFired = false;
-    }
-
-    public void OnTrashDestroyed(int roundIndex, int remaining, int total)
-    {
-        if (halfwayFired) return;
-        if (roundIndex != 1 && roundIndex != 2) return;
-
-        int destroyed = total - remaining;
-        int half = Mathf.CeilToInt(total / 2f);
-
-        if (destroyed >= half)
+        switch (roundIndex)
         {
-            halfwayFired = true;
-            PlayBeat(roundIndex == 1 ? BeatIndex.Round2HalfWay : BeatIndex.Round3HalfWay);
+            case 1: PlayBeat(BeatIndex.Round2Start); break;
+            case 2: PlayBeat(BeatIndex.Round3Start); break;
+                // Ronda 0 no tiene beat de inicio, arranca con GameStart
         }
     }
+
+
 
     public void OnRoundCompleted(int roundIndex)
     {
         switch (roundIndex)
         {
-            case 0: PlayBeat(BeatIndex.Round1Complete); break;
-            case 1: PlayBeat(BeatIndex.Round2Complete); break;
-            case 2: PlayBeat(BeatIndex.Round3Complete); break;
+            case 0: PlayBeat(BeatIndex.Round1End); break;
+            case 1: PlayBeat(BeatIndex.Round2End); break;
+            case 2: PlayBeat(BeatIndex.Round3End); break;
         }
     }
 
@@ -139,7 +125,7 @@ public class NarrativeBeatManager : MonoBehaviour
         StartCoroutine(TrackBeatDuration(beat.clip.length));
     }
 
-    
+
     private IEnumerator TrackBeatDuration(float duration)
     {
         activeBeatCount++;

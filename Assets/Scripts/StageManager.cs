@@ -101,12 +101,10 @@ public class StageManager : MonoBehaviour
     {
         trashRemaining--;
         RoundHUDDisplay.Instance?.RegisterDestroyed();
-        NarrativeBeatManager.Instance?.OnTrashDestroyed(currentRound, trashRemaining, roundTotal);
 
         if (trashRemaining <= 0 && !transitioning && roundStarted)
         {
             roundCleared = true;
-            NarrativeBeatManager.Instance?.OnRoundCompleted(currentRound);
             Debug.Log("[StageManager] ¡Basura limpia! Guardá el arma en el holster para continuar.");
         }
     }
@@ -190,6 +188,9 @@ public class StageManager : MonoBehaviour
         roundCleared = false;
         roundStarted = false;
 
+        // Beat de fin de ronda — suena antes del fade
+        NarrativeBeatManager.Instance?.OnRoundCompleted(currentRound);
+
         // Bloquear todo
         SetWeaponsGrabbable(false);
         vacuumHolster?.Lock();
@@ -239,6 +240,8 @@ public class StageManager : MonoBehaviour
         roundStarted = false;
         activeTrash.Clear();
         DialogueManager.Instance?.PlayDialoguesForStage(roundIndex);
+        // Beat de inicio de ronda — suena antes de que el jugador agarre el arma
+        NarrativeBeatManager.Instance?.OnRoundStarted(roundIndex);
         Debug.Log($"[StageManager] Ronda {roundIndex + 1} cargada — sacá el arma para empezar");
     }
 
@@ -257,7 +260,6 @@ public class StageManager : MonoBehaviour
         trashRemaining = spawned;
         roundTotal = spawned;
 
-        NarrativeBeatManager.Instance?.OnRoundStarted(currentRound);
         RoundHUDDisplay.Instance?.SetRoundTotal(spawned);
         Debug.Log($"[StageManager] Ronda {currentRound + 1} — {spawned} objetos spawneados");
     }
