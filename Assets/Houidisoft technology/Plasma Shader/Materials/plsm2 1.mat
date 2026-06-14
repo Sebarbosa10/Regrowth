@@ -107,7 +107,7 @@ Material:
     - _BlendModePreserveSpecular: 1
     - _BoarderStrtenght: 2.86
     - _Boarder_Size: 2.7
-    - _Boarder_Strength: 1.9
+    - _Boarder_Strength: 5
     - _BumpScale: 1
     - _ClearCoatMask: 0
     - _ClearCoatSmoothness: 0

@@ -86,7 +86,7 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
-    - Vector1_1D9A2AE: -0.66
+    - Vector1_1D9A2AE: 0.01
     - Vector1_EFE64959: 30
     - Vector1_FEFF47F1: 0
     - _AlphaClip: 0
@@ -100,7 +100,8 @@ Material:
     - _Cutoff: 0.5
     - _DetailAlbedoMapScale: 1
     - _DetailNormalMapScale: 1
-    - _Dissolve: 1
+    - _Dissolve: 0
+    - _DitherAlpha: 1
     - _DstBlend: 0
     - _DstBlendAlpha: 0
     - _EnvironmentReflections: 1
