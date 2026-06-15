@@ -1,4 +1,5 @@
 ﻿using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using Oculus.Interaction;
 
@@ -101,6 +102,8 @@ public class TrashGun : MonoBehaviour, IUpdatable
     private bool isBursting = false;
     private OVRInput.Controller activeController = OVRInput.Controller.None;
 
+    private readonly Queue<LineRenderer> tracePool = new Queue<LineRenderer>();
+
     [SerializeField] private CustomUpdateManager updateManager;
 
     private void Reset() { grabbable = GetComponent<Grabbable>(); }
@@ -141,9 +144,20 @@ public class TrashGun : MonoBehaviour, IUpdatable
     private void SpawnTrace(Vector3 from, Vector3 to)
     {
         if (tracePrefab == null) return;
-        LineRenderer trace = Instantiate(tracePrefab, Vector3.zero, Quaternion.identity);
-        trace.useWorldSpace = true;
-        trace.positionCount = 2;
+
+        LineRenderer trace;
+        if (tracePool.Count > 0)
+        {
+            trace = tracePool.Dequeue();
+            trace.gameObject.SetActive(true);
+        }
+        else
+        {
+            trace = Instantiate(tracePrefab, Vector3.zero, Quaternion.identity);
+            trace.useWorldSpace = true;
+            trace.positionCount = 2;
+        }
+
         trace.startWidth = traceWidth;
         trace.endWidth = traceWidth * 0.3f;
         trace.startColor = traceColor;
@@ -158,15 +172,17 @@ public class TrashGun : MonoBehaviour, IUpdatable
         float t = 0f;
         Color startA = trace.startColor;
         Color endA = trace.endColor;
+        float invDuration = 1f / traceDuration;
         while (t < traceDuration)
         {
             t += Time.deltaTime;
-            float alpha = 1f - (t / traceDuration);
+            float alpha = 1f - (t * invDuration);
             trace.startColor = new Color(startA.r, startA.g, startA.b, alpha);
             trace.endColor = new Color(endA.r, endA.g, endA.b, alpha * 0.3f);
             yield return null;
         }
-        Destroy(trace.gameObject);
+        trace.gameObject.SetActive(false);
+        tracePool.Enqueue(trace);
     }
 
     // ─────────────────────────────────────────

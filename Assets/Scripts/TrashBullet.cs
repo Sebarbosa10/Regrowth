@@ -4,6 +4,12 @@ public class TrashBullet : MonoBehaviour
 {
     private AudioClip impactSound;
     private string targetTag;
+    private Collider selfCollider;
+
+    private void Awake()
+    {
+        selfCollider = GetComponent<Collider>();
+    }
 
     public void SetTargetTag(string tag)
     {
@@ -17,17 +23,15 @@ public class TrashBullet : MonoBehaviour
 
     private void OnCollisionEnter(Collision collision)
     {
-        
         if (string.IsNullOrEmpty(targetTag))
         {
-            Physics.IgnoreCollision(collision.collider, GetComponent<Collider>());
+            Physics.IgnoreCollision(collision.collider, selfCollider);
             return;
         }
 
-        
         if (!collision.gameObject.CompareTag(targetTag))
         {
-            Physics.IgnoreCollision(collision.collider, GetComponent<Collider>());
+            Physics.IgnoreCollision(collision.collider, selfCollider);
             return;
         }
 

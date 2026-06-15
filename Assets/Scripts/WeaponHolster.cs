@@ -2,8 +2,6 @@ using UnityEngine;
 using Oculus.Interaction;
 using System;
 
-
-
 public class WeaponHolster : MonoBehaviour, IUpdatable
 {
     [Header("Settings")]
@@ -18,8 +16,18 @@ public class WeaponHolster : MonoBehaviour, IUpdatable
     private bool hasBeenGrabbed = false;
     private bool isLocked = false;
 
+    private Grabbable cachedGrabbable;
+    private Rigidbody cachedRb;
+
     public event Action OnWeaponStored;
     public event Action OnWeaponRemoved;
+
+    private void CacheWeaponComponents()
+    {
+        if (weaponObject == null) { cachedGrabbable = null; cachedRb = null; return; }
+        cachedGrabbable = weaponObject.GetComponentInChildren<Grabbable>();
+        cachedRb = weaponObject.GetComponent<Rigidbody>();
+    }
 
     private void Start()
     {
@@ -28,6 +36,7 @@ public class WeaponHolster : MonoBehaviour, IUpdatable
             WeaponMarker marker = weaponObject.GetComponent<WeaponMarker>();
             if (marker != null) marker.myHolster = this;
         }
+        CacheWeaponComponents();
     }
 
     private void OnEnable()
@@ -45,28 +54,19 @@ public class WeaponHolster : MonoBehaviour, IUpdatable
         if (isLocked || playerTransform == null || weaponObject == null) return;
 
         bool beatPlaying = NarrativeBeatManager.Instance != null && NarrativeBeatManager.Instance.IsPlaying;
-
-        Grabbable grab = weaponObject.GetComponentInChildren<Grabbable>();
-        bool isBeingHeld = (grab != null && grab.SelectingPointsCount > 0);
+        bool isBeingHeld = cachedGrabbable != null && cachedGrabbable.SelectingPointsCount > 0;
 
         if (isBeingHeld)
         {
-            // No permitir sacar el arma mientras suena un beat
-            if (beatPlaying && !isStored)
-            {
-                // Ya está fuera — no hacer nada, pero tampoco registrar el grab
-                return;
-            }
+            if (beatPlaying && !isStored) return;
 
             hasBeenGrabbed = true;
 
             if (isStored)
             {
-                // Bloquear sacar del holster durante beat
                 if (beatPlaying) return;
 
-                Rigidbody rb = weaponObject.GetComponent<Rigidbody>();
-                if (rb != null) rb.isKinematic = false;
+                if (cachedRb != null) cachedRb.isKinematic = false;
                 weaponObject.transform.SetParent(null);
                 isStored = false;
 
@@ -78,14 +78,10 @@ public class WeaponHolster : MonoBehaviour, IUpdatable
             float distToPlayer = Vector3.Distance(playerTransform.position, weaponObject.transform.position);
 
             if (distToPlayer > maxDistance)
-            {
                 ForceReturnToHolster();
-            }
             else if (Vector3.Distance(transform.position, weaponObject.transform.position) < snapRadius)
             {
-                // Bloquear guardar durante beat
                 if (beatPlaying) return;
-
                 PlaceWeaponInHolster();
             }
         }
@@ -102,21 +98,20 @@ public class WeaponHolster : MonoBehaviour, IUpdatable
         WeaponMarker marker = weapon.GetComponent<WeaponMarker>();
         if (marker != null) marker.myHolster = this;
 
-        // Resetear estado antes de guardar
         isStored = false;
         hasBeenGrabbed = false;
+        CacheWeaponComponents();
 
         ForceReturnToHolster();
     }
 
     private void PlaceWeaponInHolster()
     {
-        Rigidbody rb = weaponObject.GetComponent<Rigidbody>();
-        if (rb != null)
+        if (cachedRb != null)
         {
-            rb.velocity = Vector3.zero;
-            rb.angularVelocity = Vector3.zero;
-            rb.isKinematic = true;
+            cachedRb.velocity = Vector3.zero;
+            cachedRb.angularVelocity = Vector3.zero;
+            cachedRb.isKinematic = true;
         }
 
         isStored = true;
@@ -130,15 +125,13 @@ public class WeaponHolster : MonoBehaviour, IUpdatable
 
     private void ForceReturnToHolster()
     {
-        // Limpiar parent anterior
         weaponObject.transform.SetParent(null);
 
-        Rigidbody rb = weaponObject.GetComponent<Rigidbody>();
-        if (rb != null)
+        if (cachedRb != null)
         {
-            rb.isKinematic = true;
-            rb.velocity = Vector3.zero;
-            rb.angularVelocity = Vector3.zero;
+            cachedRb.isKinematic = true;
+            cachedRb.velocity = Vector3.zero;
+            cachedRb.angularVelocity = Vector3.zero;
         }
 
         weaponObject.transform.position = snapPoint.position;

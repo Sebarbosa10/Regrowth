@@ -1,9 +1,6 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
-
-public class TrashFloat : MonoBehaviour
+public class TrashFloat : MonoBehaviour, IUpdatable
 {
     [System.Serializable]
     public class FloatConfig
@@ -20,7 +17,7 @@ public class TrashFloat : MonoBehaviour
         public float rotationSpeed = 15f;      
     }
 
-    [Header("Configuración por stage")]
+    [Header("Configuraciï¿½n por stage")]
     [SerializeField]
     private FloatConfig[] stageConfigs = new FloatConfig[]
     {
@@ -93,16 +90,23 @@ public class TrashFloat : MonoBehaviour
         ).normalized;
     }
 
-    private void Update()
+    private void OnEnable()
     {
-        
+        if (CustomUpdateManager.Instance != null) CustomUpdateManager.Instance.Register(this);
+    }
+
+    private void OnDisable()
+    {
+        if (CustomUpdateManager.Instance != null) CustomUpdateManager.Instance.Unregister(this);
+    }
+
+    public void Tick(float deltaTime)
+    {
         float bobY = Mathf.Sin(Time.time * config.bobSpeed + bobOffset) * config.bobAmplitude;
 
-        
-        driftTimer -= Time.deltaTime;
+        driftTimer -= deltaTime;
         if (driftTimer <= 0f)
         {
-            
             driftDirection = new Vector3(
                 Random.Range(-1f, 1f),
                 0f,
@@ -111,11 +115,8 @@ public class TrashFloat : MonoBehaviour
             driftTimer = config.driftChangeInterval;
         }
 
-        
-        startPosition += driftDirection * config.driftSpeed * Time.deltaTime;
-        transform.position = startPosition + new Vector3(0f, bobY, 0f);
-
-        
-        transform.Rotate(rotationAxis, config.rotationSpeed * Time.deltaTime, Space.World);
+        startPosition += driftDirection * (config.driftSpeed * deltaTime);
+        transform.position = new Vector3(startPosition.x, startPosition.y + bobY, startPosition.z);
+        transform.Rotate(rotationAxis, config.rotationSpeed * deltaTime, Space.World);
     }
 }

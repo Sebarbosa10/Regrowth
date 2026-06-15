@@ -1,10 +1,6 @@
 using TMPro;
 using UnityEngine;
 
-/// <summary>
-/// Muestra en el HUD el total de basura de la ronda y cuántas se destruyeron.
-/// Adjuntarlo al mismo GameObject que FloatingHUD, o a cualquier hijo del Canvas.
-/// </summary>
 public class RoundHUDDisplay : MonoBehaviour
 {
     
