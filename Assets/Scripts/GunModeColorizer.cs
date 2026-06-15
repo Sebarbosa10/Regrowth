@@ -1,6 +1,4 @@
-﻿using System.Collections;
 using UnityEngine;
-
 
 public class GunModeColorizer : MonoBehaviour
 {
@@ -11,13 +9,8 @@ public class GunModeColorizer : MonoBehaviour
         public Material material;
     }
 
-    
     [SerializeField] private Renderer[] targetRenderers;
-
-    
     [SerializeField] private int materialIndex = 0;
-
-    
     [SerializeField]
     private ModeMaterial[] modeMaterials = new ModeMaterial[]
     {
@@ -29,23 +22,15 @@ public class GunModeColorizer : MonoBehaviour
 
     private int currentModeIndex = 0;
 
-    
     public void SetMode(int modeIndex)
     {
         if (modeIndex < 0 || modeIndex >= modeMaterials.Length) return;
         currentModeIndex = modeIndex;
-
         Material target = modeMaterials[modeIndex].material;
-        if (target == null)
-        {
-            Debug.LogWarning($"[GunModeColorizer] Modo {modeIndex} no tiene material asignado.");
-            return;
-        }
-
+        if (target == null) return;
         ApplyMaterial(target);
     }
 
-    
     public void SetEnergyLerp(float t, Material depletedMaterial)
     {
         if (modeMaterials[currentModeIndex].material == null || depletedMaterial == null) return;
@@ -63,12 +48,7 @@ public class GunModeColorizer : MonoBehaviour
         }
     }
 
-   
-    public void SetDepletedMaterial(Material mat)
-    {
-        ApplyMaterial(mat);
-    }
-
+    public void SetDepletedMaterial(Material mat) { ApplyMaterial(mat); }
 
     public Material GetCurrentMaterial()
     {
@@ -79,16 +59,11 @@ public class GunModeColorizer : MonoBehaviour
     private void ApplyMaterial(Material mat)
     {
         if (targetRenderers == null) return;
-
         foreach (Renderer r in targetRenderers)
         {
             if (r == null) continue;
             Material[] mats = r.materials;
-            if (materialIndex >= mats.Length)
-            {
-                Debug.LogWarning($"[GunModeColorizer] materialIndex {materialIndex} fuera de rango en {r.name}");
-                continue;
-            }
+            if (materialIndex >= mats.Length) continue;
             mats[materialIndex] = mat;
             r.materials = mats;
         }

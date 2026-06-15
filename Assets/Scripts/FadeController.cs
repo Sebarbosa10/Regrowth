@@ -1,11 +1,10 @@
-
 using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
 
 public class FadeController : MonoBehaviour
 {
-    [SerializeField] private Image fadeImage; 
+    [SerializeField] private Image fadeImage;
     [SerializeField] private float fadeDuration = 1.5f;
 
     private void Start()
@@ -19,8 +18,7 @@ public class FadeController : MonoBehaviour
         while (t < fadeDuration)
         {
             t += Time.deltaTime;
-            float alpha = Mathf.Clamp01(t / fadeDuration);
-            fadeImage.color = new Color(0, 0, 0, alpha);
+            fadeImage.color = new Color(0, 0, 0, Mathf.Clamp01(t / fadeDuration));
             yield return null;
         }
     }
@@ -31,8 +29,7 @@ public class FadeController : MonoBehaviour
         while (t < fadeDuration)
         {
             t += Time.deltaTime;
-            float alpha = 1f - Mathf.Clamp01(t / fadeDuration);
-            fadeImage.color = new Color(0, 0, 0, alpha);
+            fadeImage.color = new Color(0, 0, 0, 1f - Mathf.Clamp01(t / fadeDuration));
             yield return null;
         }
     }

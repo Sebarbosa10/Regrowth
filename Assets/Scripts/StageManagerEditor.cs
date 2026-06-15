@@ -8,21 +8,17 @@ public class StageManagerEditor : Editor
     {
         StageManager manager = (StageManager)target;
 
-        // Leer center y size via SerializedProperty para que Undo funcione
         SerializedProperty boxCenterProp = serializedObject.FindProperty("boxCenter");
         SerializedProperty boxSizeProp = serializedObject.FindProperty("boxSize");
 
         Transform boxCenterTransform = boxCenterProp.objectReferenceValue as Transform;
-        Vector3 center = boxCenterTransform != null
-            ? boxCenterTransform.position
-            : manager.transform.position;
+        Vector3 center = boxCenterTransform != null ? boxCenterTransform.position : manager.transform.position;
 
         Vector3 size = boxSizeProp.vector3Value;
         Vector3 half = size * 0.5f;
 
         EditorGUI.BeginChangeCheck();
 
-        // Handles en las 6 caras
         Handles.color = new Color(0f, 1f, 0.4f, 0.8f);
 
         Vector3 newPX = Handles.Slider(center + new Vector3(half.x, 0, 0), Vector3.right);

@@ -1,8 +1,7 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using Oculus.Interaction;
-
 
 public class TrashGun : MonoBehaviour, IUpdatable
 {
@@ -23,76 +22,42 @@ public class TrashGun : MonoBehaviour, IUpdatable
         public float duration = 0.1f;
     }
 
-    [Header("References")]
     [SerializeField] private Grabbable grabbable;
     [SerializeField] private Transform muzzle;
-
-    [Header("Hitscan Settings")]
     [SerializeField] private float range = 20f;
     [SerializeField] private float triggerThreshold = 0.7f;
-
-    [Header("Fire Settings")]
-    [Tooltip("Single, Burst, Spread")]
     [SerializeField] private float fireRate = 0.3f;
-    [Tooltip("Auto — balas por segundo (ej: 10 = cadencia de SMG)")]
     [SerializeField] private float autoFireRate = 0.08f;
-
-    [Header("— Burst Settings")]
     [SerializeField] private int burstCount = 3;
     [SerializeField] private float burstDelay = 0.08f;
-
-    [Header("— Spread Settings")]
     [SerializeField] private int spreadCount = 5;
     [SerializeField] private float spreadAngle = 15f;
-
-    [Header("Layer")]
     [SerializeField] private LayerMask shootableLayer;
-
-    [Header("Bullet Trace")]
     [SerializeField] private LineRenderer tracePrefab;
     [SerializeField] private float traceDuration = 0.08f;
     [SerializeField] private float traceWidth = 0.005f;
     [SerializeField] private Color traceColor = Color.yellow;
-
-    [Header("Audio")]
     [SerializeField] private AudioSource audioSource;
     [SerializeField] private AudioClip shootSound;
     [SerializeField] private AudioClip impactSound;
     [SerializeField] private AudioClip modeSwitchSound;
     [SerializeField] private AudioClip noEnergySound;
-
-    [Header("Mode Switch Button")]
     [SerializeField] private OVRInput.Button modeSwitchButton = OVRInput.Button.One;
-
-    [Header("Color")]
     [SerializeField] private GunModeColorizer colorizer;
-
-    [Header("Two-Handed Grip")]
     [SerializeField] private TwoHandedGunGrip twoHandedGrip;
-
-    [Header("Energy")]
     [SerializeField] private GunEnergySystem energySystem;
-
-    [Header("Recoil")]
     [SerializeField] private GunRecoil recoil;
-
-    [Header("Haptics — Fire")]
-    [SerializeField]
-    private HapticProfile[] hapticProfiles = new HapticProfile[]
+    [SerializeField] private HapticProfile[] hapticProfiles = new HapticProfile[]
     {
         new HapticProfile { modeName = "Single", frequency = 0.8f, amplitude = 0.6f, duration = 0.08f },
         new HapticProfile { modeName = "Burst",  frequency = 0.5f, amplitude = 0.9f, duration = 0.06f },
         new HapticProfile { modeName = "Auto",   frequency = 1.0f, amplitude = 0.4f, duration = 0.05f },
         new HapticProfile { modeName = "Spread", frequency = 0.3f, amplitude = 1.0f, duration = 0.15f },
     };
-
-    [Header("Haptics — Mode Switch")]
-    [SerializeField]
-    private HapticProfile modeSwitchHaptic = new HapticProfile
-    { modeName = "Switch", frequency = 0.2f, amplitude = 0.5f, duration = 0.12f };
-
-    [Header("Debug")]
+    [SerializeField] private HapticProfile modeSwitchHaptic = new HapticProfile
+        { modeName = "Switch", frequency = 0.2f, amplitude = 0.5f, duration = 0.12f };
     [SerializeField] private FireMode currentMode = FireMode.Single;
+    [SerializeField] private CustomUpdateManager updateManager;
 
     private static readonly string[] modeTargetTags = { "Plastic", "Glass", "Organic", "Metal" };
 
@@ -101,10 +66,7 @@ public class TrashGun : MonoBehaviour, IUpdatable
     private bool switchWasPressed = false;
     private bool isBursting = false;
     private OVRInput.Controller activeController = OVRInput.Controller.None;
-
     private readonly Queue<LineRenderer> tracePool = new Queue<LineRenderer>();
-
-    [SerializeField] private CustomUpdateManager updateManager;
 
     private void Reset() { grabbable = GetComponent<Grabbable>(); }
 
@@ -123,23 +85,15 @@ public class TrashGun : MonoBehaviour, IUpdatable
     public void Tick(float deltaTime)
     {
         if (grabbable == null || muzzle == null) return;
-
-        bool held = grabbable.SelectingPointsCount > 0;
-        if (!held) return;
+        if (grabbable.SelectingPointsCount <= 0) return;
 
         DetectActiveController();
 
-        // Bloquear todo input durante beats narrativos
-        if (NarrativeBeatManager.Instance != null && NarrativeBeatManager.Instance.IsPlaying)
-            return;
+        if (NarrativeBeatManager.Instance != null && NarrativeBeatManager.Instance.IsPlaying) return;
 
         HandleModeSwitch();
         HandleFire();
     }
-
-    // ─────────────────────────────────────────
-    //  BULLET TRACE
-    // ─────────────────────────────────────────
 
     private void SpawnTrace(Vector3 from, Vector3 to)
     {
@@ -185,10 +139,6 @@ public class TrashGun : MonoBehaviour, IUpdatable
         tracePool.Enqueue(trace);
     }
 
-    // ─────────────────────────────────────────
-    //  CONTROLLER DETECTION
-    // ─────────────────────────────────────────
-
     private void DetectActiveController()
     {
         float left = OVRInput.Get(OVRInput.Axis1D.PrimaryIndexTrigger, OVRInput.Controller.LTouch);
@@ -199,10 +149,6 @@ public class TrashGun : MonoBehaviour, IUpdatable
         else if (left > 0.01f)
             activeController = OVRInput.Controller.LTouch;
     }
-
-    // ─────────────────────────────────────────
-    //  MODE SWITCH
-    // ─────────────────────────────────────────
 
     private void HandleModeSwitch()
     {
@@ -216,8 +162,7 @@ public class TrashGun : MonoBehaviour, IUpdatable
 
         if (switchPressed && !switchWasPressed)
         {
-            int next = ((int)currentMode + 1) % modeTargetTags.Length;
-            currentMode = (FireMode)next;
+            currentMode = (FireMode)(((int)currentMode + 1) % modeTargetTags.Length);
 
             if (audioSource != null && modeSwitchSound != null)
                 audioSource.PlayOneShot(modeSwitchSound);
@@ -225,16 +170,10 @@ public class TrashGun : MonoBehaviour, IUpdatable
             colorizer?.SetMode((int)currentMode);
             energySystem?.SetCurrentMode((int)currentMode, colorizer?.GetCurrentMaterial());
             Vibrate(modeSwitchHaptic);
-
-            Debug.Log($"[TrashGun] Modo: {currentMode} -> Tag: {modeTargetTags[(int)currentMode]}");
         }
 
         switchWasPressed = switchPressed;
     }
-
-    // ─────────────────────────────────────────
-    //  FIRE ROUTING
-    // ─────────────────────────────────────────
 
     private void HandleFire()
     {
@@ -245,46 +184,34 @@ public class TrashGun : MonoBehaviour, IUpdatable
         switch (currentMode)
         {
             case FireMode.Single:
-                if (triggerPressed && !triggerWasPressed && CanFire())
+                if (triggerPressed && !triggerWasPressed && CanFire() && TryConsumeEnergy())
                 {
-                    if (TryConsumeEnergy())
-                    {
-                        FireSingle(muzzle.forward);
-                        lastFireTime = Time.time;
-                    }
+                    FireSingle(muzzle.forward);
+                    lastFireTime = Time.time;
                 }
                 break;
 
             case FireMode.Burst:
-                if (triggerPressed && !triggerWasPressed && CanFire() && !isBursting)
+                if (triggerPressed && !triggerWasPressed && CanFire() && !isBursting && TryConsumeEnergy())
                 {
-                    if (TryConsumeEnergy())
-                    {
-                        StartCoroutine(FireBurst());
-                        lastFireTime = Time.time;
-                    }
+                    StartCoroutine(FireBurst());
+                    lastFireTime = Time.time;
                 }
                 break;
 
             case FireMode.Auto:
-                if (triggerPressed && CanFire())
+                if (triggerPressed && CanFire() && TryConsumeEnergy())
                 {
-                    if (TryConsumeEnergy())
-                    {
-                        FireSingle(muzzle.forward);
-                        lastFireTime = Time.time;
-                    }
+                    FireSingle(muzzle.forward);
+                    lastFireTime = Time.time;
                 }
                 break;
 
             case FireMode.Spread:
-                if (triggerPressed && !triggerWasPressed && CanFire())
+                if (triggerPressed && !triggerWasPressed && CanFire() && TryConsumeEnergy())
                 {
-                    if (TryConsumeEnergy())
-                    {
-                        FireSpread();
-                        lastFireTime = Time.time;
-                    }
+                    FireSpread();
+                    lastFireTime = Time.time;
                 }
                 break;
         }
@@ -294,19 +221,16 @@ public class TrashGun : MonoBehaviour, IUpdatable
 
     private bool CanFire()
     {
-        float rate = (currentMode == FireMode.Auto) ? autoFireRate : fireRate;
+        float rate = currentMode == FireMode.Auto ? autoFireRate : fireRate;
         return Time.time >= lastFireTime + rate;
     }
 
     private bool TryConsumeEnergy()
     {
         if (energySystem == null) return true;
-
         bool canShoot = energySystem.TryShoot();
-
         if (!canShoot && audioSource != null && noEnergySound != null)
             audioSource.PlayOneShot(noEnergySound);
-
         return canShoot;
     }
 
@@ -315,10 +239,6 @@ public class TrashGun : MonoBehaviour, IUpdatable
         if (twoHandedGrip == null) return true;
         return twoHandedGrip.IsMainHandActive;
     }
-
-    // ─────────────────────────────────────────
-    //  FIRE MODES
-    // ─────────────────────────────────────────
 
     private void FireSingle(Vector3 direction)
     {
@@ -350,18 +270,13 @@ public class TrashGun : MonoBehaviour, IUpdatable
 
         for (int i = 0; i < spreadCount; i++)
         {
-            float yaw = -halfAngle + step * i;
-            Vector3 dir = Quaternion.Euler(0f, yaw, 0f) * muzzle.forward;
+            Vector3 dir = Quaternion.Euler(0f, -halfAngle + step * i, 0f) * muzzle.forward;
             Hitscan(muzzle.position, dir);
         }
 
         VibrateForMode();
         recoil?.ApplyRecoil((int)currentMode);
     }
-
-    // ─────────────────────────────────────────
-    //  HITSCAN
-    // ─────────────────────────────────────────
 
     private void Hitscan(Vector3 origin, Vector3 direction)
     {
@@ -371,25 +286,15 @@ public class TrashGun : MonoBehaviour, IUpdatable
         if (Physics.Raycast(origin, direction, out RaycastHit hit, range))
         {
             endPoint = hit.point;
-
             if (hit.collider.CompareTag(targetTag))
             {
-                if (impactSound != null)
-                    AudioSource.PlayClipAtPoint(impactSound, hit.point);
-
-                //if (TrashDiscoveryManager.Instance != null)
-                //    TrashDiscoveryManager.Instance.OnTrashCollected(hit.collider.gameObject);
-
+                if (impactSound != null) AudioSource.PlayClipAtPoint(impactSound, hit.point);
                 Destroy(hit.collider.gameObject);
             }
         }
 
         SpawnTrace(origin, endPoint);
     }
-
-    // ─────────────────────────────────────────
-    //  HAPTICS
-    // ─────────────────────────────────────────
 
     private void VibrateForMode()
     {
@@ -402,8 +307,7 @@ public class TrashGun : MonoBehaviour, IUpdatable
     {
         if (profile == null) return;
         OVRInput.Controller controller = activeController != OVRInput.Controller.None
-            ? activeController
-            : OVRInput.Controller.RTouch;
+            ? activeController : OVRInput.Controller.RTouch;
 
         OVRInput.SetControllerVibration(profile.frequency, profile.amplitude, controller);
         StartCoroutine(StopVibration(profile.duration, controller));
@@ -415,10 +319,6 @@ public class TrashGun : MonoBehaviour, IUpdatable
         OVRInput.SetControllerVibration(0f, 0f, controller);
     }
 
-    // ─────────────────────────────────────────
-    //  HELPERS
-    // ─────────────────────────────────────────
-
     private void PlayShootSound()
     {
         if (audioSource != null && shootSound != null)
@@ -427,8 +327,7 @@ public class TrashGun : MonoBehaviour, IUpdatable
 
     private bool IsRightTriggerPressed()
     {
-        float right = OVRInput.Get(OVRInput.Axis1D.PrimaryIndexTrigger, OVRInput.Controller.RTouch);
-        return right > triggerThreshold;
+        return OVRInput.Get(OVRInput.Axis1D.PrimaryIndexTrigger, OVRInput.Controller.RTouch) > triggerThreshold;
     }
 
     private void OnDrawGizmosSelected()

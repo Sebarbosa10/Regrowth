@@ -4,14 +4,9 @@ using UnityEngine;
 [RequireComponent(typeof(Renderer))]
 public class TrashDissolveSpawner : MonoBehaviour
 {
-    [Header("Settings")]
     [SerializeField] private float dissolveDuration = 1f;
     [SerializeField] private AnimationCurve dissolveCurve = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
-
-    [Header("Collider")]
     [SerializeField] private bool disableColliderDuringDissolve = true;
-
-    [Header("Audio")]
     [SerializeField] private AudioClip dissolveSound;
     [SerializeField] private float dissolveSoundVolume = 1f;
 
@@ -43,8 +38,7 @@ public class TrashDissolveSpawner : MonoBehaviour
         while (t < dissolveDuration)
         {
             t += Time.deltaTime;
-            float progress = Mathf.Clamp01(t / dissolveDuration);
-            SetDissolve(1f - dissolveCurve.Evaluate(progress));
+            SetDissolve(1f - dissolveCurve.Evaluate(Mathf.Clamp01(t / dissolveDuration)));
             yield return null;
         }
 

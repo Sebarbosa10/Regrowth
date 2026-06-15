@@ -11,15 +11,8 @@ public class TrashBullet : MonoBehaviour
         selfCollider = GetComponent<Collider>();
     }
 
-    public void SetTargetTag(string tag)
-    {
-        targetTag = tag;
-    }
-
-    public void SetImpactSound(AudioClip clip)
-    {
-        impactSound = clip;
-    }
+    public void SetTargetTag(string tag) { targetTag = tag; }
+    public void SetImpactSound(AudioClip clip) { impactSound = clip; }
 
     private void OnCollisionEnter(Collision collision)
     {
@@ -35,12 +28,8 @@ public class TrashBullet : MonoBehaviour
             return;
         }
 
-        
         if (impactSound != null)
             AudioSource.PlayClipAtPoint(impactSound, transform.position);
-
-        //if (TrashDiscoveryManager.Instance != null)
-        //    TrashDiscoveryManager.Instance.OnTrashCollected(collision.gameObject);
 
         Destroy(collision.gameObject);
         Destroy(gameObject);

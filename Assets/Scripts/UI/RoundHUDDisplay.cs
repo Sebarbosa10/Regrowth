@@ -3,11 +3,8 @@ using UnityEngine;
 
 public class RoundHUDDisplay : MonoBehaviour
 {
-    
     [SerializeField] private TextMeshProUGUI totalText;
     [SerializeField] private TextMeshProUGUI destroyedText;
-
-    
     [SerializeField] private string totalLabel = "Total";
     [SerializeField] private string destroyedLabel = "Destruidas";
 
@@ -16,12 +13,8 @@ public class RoundHUDDisplay : MonoBehaviour
 
     public static RoundHUDDisplay Instance { get; private set; }
 
-    private void Awake()
-    {
-        Instance = this;
-    }
+    private void Awake() { Instance = this; }
 
-   
     public void SetRoundTotal(int totalTrash)
     {
         total = totalTrash;
@@ -29,7 +22,6 @@ public class RoundHUDDisplay : MonoBehaviour
         Refresh();
     }
 
-    
     public void RegisterDestroyed()
     {
         destroyed++;
@@ -38,10 +30,7 @@ public class RoundHUDDisplay : MonoBehaviour
 
     private void Refresh()
     {
-        if (totalText != null)
-            totalText.text = $"{totalLabel}: {total}";
-
-        if (destroyedText != null)
-            destroyedText.text = $"{destroyedLabel}: {destroyed}";
+        if (totalText != null) totalText.text = $"{totalLabel}: {total}";
+        if (destroyedText != null) destroyedText.text = $"{destroyedLabel}: {destroyed}";
     }
 }

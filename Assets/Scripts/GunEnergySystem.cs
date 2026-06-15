@@ -1,29 +1,18 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using Oculus.Interaction;
 
 public class GunEnergySystem : MonoBehaviour, IUpdatable
 {
-    
     [SerializeField] private int maxShots = 10;
     [SerializeField] private float rechargeShakeTime = 3f;
     [SerializeField] private float shakeThreshold = 1.5f;
-
-    
     [SerializeField] private GunModeColorizer colorizer;
     [SerializeField] private Material depletedMaterial;
-
-    
     [SerializeField] private AudioSource audioSource;
     [SerializeField] private AudioClip depletedSound;
     [SerializeField] private AudioClip rechargedSound;
-
-    
     [SerializeField] private float rechargeHapticFrequency = 0.5f;
     [SerializeField] private float rechargeHapticAmplitude = 0.8f;
-
-    
     [SerializeField] private CustomUpdateManager updateManager;
     [SerializeField] private Grabbable grabbable;
 
@@ -32,8 +21,6 @@ public class GunEnergySystem : MonoBehaviour, IUpdatable
     private float shakeTimer = 0f;
     private Vector3 lastControllerPos;
     private int currentModeIndex = 0;
-
-    
     private Material lastChargedMaterial;
 
     public bool IsDepleted => isDepleted;
@@ -58,7 +45,6 @@ public class GunEnergySystem : MonoBehaviour, IUpdatable
     {
         if (!isDepleted) return;
 
-        
         if (grabbable != null && grabbable.SelectingPointsCount <= 0)
         {
             shakeTimer = 0f;
@@ -72,8 +58,6 @@ public class GunEnergySystem : MonoBehaviour, IUpdatable
         if (velocity > shakeThreshold)
         {
             shakeTimer += deltaTime;
-
-            
             OVRInput.SetControllerVibration(
                 rechargeHapticFrequency,
                 rechargeHapticAmplitude * (shakeTimer / rechargeShakeTime),
@@ -85,20 +69,16 @@ public class GunEnergySystem : MonoBehaviour, IUpdatable
         }
         else
         {
-            
             shakeTimer = 0f;
             OVRInput.SetControllerVibration(0f, 0f, OVRInput.Controller.RTouch);
         }
     }
 
-    
     public bool TryShoot()
     {
         if (isDepleted) return false;
 
         shotsRemaining--;
-
-        
         UpdateEnergyVisual();
 
         if (shotsRemaining <= 0)
@@ -110,7 +90,6 @@ public class GunEnergySystem : MonoBehaviour, IUpdatable
         return true;
     }
 
-    
     public void SetCurrentMode(int modeIndex, Material chargedMaterial)
     {
         currentModeIndex = modeIndex;
@@ -121,14 +100,9 @@ public class GunEnergySystem : MonoBehaviour, IUpdatable
     {
         isDepleted = true;
         shakeTimer = 0f;
-
-        
-        ApplyMaterialDirect(depletedMaterial);
-
+        colorizer?.SetDepletedMaterial(depletedMaterial);
         if (audioSource != null && depletedSound != null)
             audioSource.PlayOneShot(depletedSound);
-
-        Debug.Log("[GunEnergy] Sin energía — agitá para recargar");
     }
 
     private void Recharge()
@@ -136,16 +110,10 @@ public class GunEnergySystem : MonoBehaviour, IUpdatable
         isDepleted = false;
         shotsRemaining = maxShots;
         shakeTimer = 0f;
-
         OVRInput.SetControllerVibration(0f, 0f, OVRInput.Controller.RTouch);
-
-        
         colorizer?.SetMode(currentModeIndex);
-
         if (audioSource != null && rechargedSound != null)
             audioSource.PlayOneShot(rechargedSound);
-
-        Debug.Log("[GunEnergy] ¡Recargada!");
     }
 
     private void UpdateEnergyVisual()
@@ -155,21 +123,13 @@ public class GunEnergySystem : MonoBehaviour, IUpdatable
         colorizer.SetEnergyLerp(t, depletedMaterial);
     }
 
-    private void ApplyMaterialDirect(Material mat)
-    {
-        colorizer?.SetDepletedMaterial(mat);
-    }
-
     private Vector3 GetControllerPosition()
     {
         float rightGrip = OVRInput.Get(OVRInput.Axis1D.PrimaryHandTrigger, OVRInput.Controller.RTouch);
         float leftGrip = OVRInput.Get(OVRInput.Axis1D.PrimaryHandTrigger, OVRInput.Controller.LTouch);
 
-        if (rightGrip > 0.5f)
-            return OVRInput.GetLocalControllerPosition(OVRInput.Controller.RTouch);
-        if (leftGrip > 0.5f)
-            return OVRInput.GetLocalControllerPosition(OVRInput.Controller.LTouch);
-
+        if (rightGrip > 0.5f) return OVRInput.GetLocalControllerPosition(OVRInput.Controller.RTouch);
+        if (leftGrip > 0.5f) return OVRInput.GetLocalControllerPosition(OVRInput.Controller.LTouch);
         return Vector3.zero;
     }
 

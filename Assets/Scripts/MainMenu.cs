@@ -2,7 +2,6 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using System.Collections;
 
-
 public class MainMenu : MonoBehaviour
 {
     [SerializeField] private FadeController fadeController;
@@ -15,8 +14,6 @@ public class MainMenu : MonoBehaviour
     public void OnQuitPressed()
     {
         Application.Quit();
-
-
     }
 
     private IEnumerator LoadGameWithFade()

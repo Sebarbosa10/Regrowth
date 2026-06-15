@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using System.Collections;
 
 public class NarrativeBeatManager : MonoBehaviour
@@ -10,34 +10,23 @@ public class NarrativeBeatManager : MonoBehaviour
     {
         public string name;
         public AudioClip clip;
-        [TextArea(1, 3)]
-        public string description;
+        [TextArea(1, 3)] public string description;
     }
 
     public enum BeatIndex
     {
-        GameStart = 0,  // Al entrar a la escena
-        Round1End = 1,  // Al terminar ronda 1
-        Round2Start = 2,  // Al iniciar ronda 2
-        Round2End = 3,  // Al terminar ronda 2
-        Round3Start = 4,  // Al iniciar ronda 3
-        Round3End = 5,  // Al terminar ronda 3
+        GameStart = 0,
+        Round1End = 1,
+        Round2Start = 2,
+        Round2End = 3,
+        Round3Start = 4,
+        Round3End = 5,
     }
 
-    [Header("Beats (en orden)")]
     [SerializeField] private Beat[] beats = new Beat[6];
-
-    [Header("Audio")]
     [SerializeField] private AudioSource audioSource;
-
-    [Header("Settings")]
     [SerializeField] private float gameStartDelay = 0.5f;
-
-    [Header("First Grab Event")]
     [SerializeField] private FirstGrabDissolveEvent firstGrabDissolveEvent;
-
-    [Header("Indicador visual")]
-    [Tooltip("Se activa cuando empieza a sonar un beat y se desactiva cuando termina")]
     [SerializeField] private GameObject beatIndicatorObject;
 
     private int activeBeatCount = 0;
@@ -51,22 +40,11 @@ public class NarrativeBeatManager : MonoBehaviour
 
     private void Start()
     {
-        if (audioSource == null)
-            Debug.LogError("[NarrativeBeat] Falta el AudioSource.");
-
-        for (int i = 0; i < beats.Length; i++)
-            if (beats[i] == null || beats[i].clip == null)
-                Debug.LogWarning($"[NarrativeBeat] Beat [{i}] ({(BeatIndex)i}) sin clip.");
-
         if (beatIndicatorObject != null)
             beatIndicatorObject.SetActive(false);
 
         StartCoroutine(PlayBeatDelayed(BeatIndex.GameStart, gameStartDelay));
     }
-
-    // ─────────────────────────────────────────
-    //  PUBLIC
-    // ─────────────────────────────────────────
 
     public void OnFirstGrab()
     {
@@ -79,16 +57,12 @@ public class NarrativeBeatManager : MonoBehaviour
         {
             case 1: StartCoroutine(PlayBeatThenDissolve(BeatIndex.Round2Start)); break;
             case 2: StartCoroutine(PlayBeatThenDissolve(BeatIndex.Round3Start)); break;
-            default:
-                // Ronda 0 — el dissolve lo dispara OnFirstGrab
-                break;
         }
     }
 
     public void OnRoundCompleted(int roundIndex)
     {
         firstGrabDissolveEvent?.Trigger();
-
         switch (roundIndex)
         {
             case 0: PlayBeat(BeatIndex.Round1End); break;
@@ -97,44 +71,20 @@ public class NarrativeBeatManager : MonoBehaviour
         }
     }
 
-    // ─────────────────────────────────────────
-    //  INTERNALS
-    // ─────────────────────────────────────────
-
     private IEnumerator PlayBeatThenDissolve(BeatIndex index)
     {
         PlayBeat(index);
-
         yield return new WaitWhile(() => IsPlaying);
-
         firstGrabDissolveEvent?.Trigger();
     }
 
     private void PlayBeat(BeatIndex index)
     {
         int i = (int)index;
-
-        if (beats == null || i >= beats.Length)
-        {
-            Debug.LogError($"[NarrativeBeat] Index {i} fuera de rango");
-            return;
-        }
+        if (beats == null || i >= beats.Length) return;
 
         Beat beat = beats[i];
-
-        if (beat == null || beat.clip == null)
-        {
-            Debug.LogWarning($"[NarrativeBeat] Beat [{i}] sin clip — saltando");
-            return;
-        }
-
-        if (audioSource == null)
-        {
-            Debug.LogError("[NarrativeBeat] AudioSource null");
-            return;
-        }
-
-        Debug.Log($"[NarrativeBeat] ▶ [{i}] '{beat.name}'");
+        if (beat == null || beat.clip == null || audioSource == null) return;
 
         audioSource.PlayOneShot(beat.clip);
         StartCoroutine(TrackBeatDuration(beat.clip.length));
@@ -143,14 +93,11 @@ public class NarrativeBeatManager : MonoBehaviour
     private IEnumerator TrackBeatDuration(float duration)
     {
         activeBeatCount++;
-
-        if (beatIndicatorObject != null)
-            beatIndicatorObject.SetActive(true);
+        if (beatIndicatorObject != null) beatIndicatorObject.SetActive(true);
 
         yield return new WaitForSeconds(duration);
 
         activeBeatCount--;
-
         if (activeBeatCount <= 0 && beatIndicatorObject != null)
             beatIndicatorObject.SetActive(false);
     }
