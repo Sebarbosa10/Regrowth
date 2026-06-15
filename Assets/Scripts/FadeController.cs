@@ -7,6 +7,8 @@ public class FadeController : MonoBehaviour
     [SerializeField] private Image fadeImage;
     [SerializeField] private float fadeDuration = 1.5f;
 
+    public float FadeDuration => fadeDuration;
+
     private void Start()
     {
         fadeImage.color = new Color(0, 0, 0, 0);
@@ -18,7 +20,8 @@ public class FadeController : MonoBehaviour
         while (t < fadeDuration)
         {
             t += Time.deltaTime;
-            fadeImage.color = new Color(0, 0, 0, Mathf.Clamp01(t / fadeDuration));
+            float alpha = Mathf.Clamp01(t / fadeDuration);
+            fadeImage.color = new Color(0, 0, 0, alpha);
             yield return null;
         }
     }
@@ -29,7 +32,8 @@ public class FadeController : MonoBehaviour
         while (t < fadeDuration)
         {
             t += Time.deltaTime;
-            fadeImage.color = new Color(0, 0, 0, 1f - Mathf.Clamp01(t / fadeDuration));
+            float alpha = 1f - Mathf.Clamp01(t / fadeDuration);
+            fadeImage.color = new Color(0, 0, 0, alpha);
             yield return null;
         }
     }
