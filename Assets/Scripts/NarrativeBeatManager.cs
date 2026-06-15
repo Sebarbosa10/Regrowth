@@ -6,11 +6,19 @@ public class NarrativeBeatManager : MonoBehaviour
     public static NarrativeBeatManager Instance { get; private set; }
 
     [System.Serializable]
+    public class SubtitleBlock
+    {
+        [TextArea(1, 3)] public string text;
+        public float duration = 2f;
+        public float delay = 0f;
+    }
+
+    [System.Serializable]
     public class Beat
     {
         public string name;
         public AudioClip clip;
-        [TextArea(1, 3)] public string description;
+        public SubtitleBlock[] subtitles;
     }
 
     public enum BeatIndex
@@ -87,8 +95,25 @@ public class NarrativeBeatManager : MonoBehaviour
         if (beat == null || beat.clip == null || audioSource == null) return;
 
         audioSource.PlayOneShot(beat.clip);
-        SubtitleDisplay.Instance?.Show(beat.description, beat.clip.length);
         StartCoroutine(TrackBeatDuration(beat.clip.length));
+
+        if (beat.subtitles != null && beat.subtitles.Length > 0)
+            StartCoroutine(PlaySubtitles(beat.subtitles));
+    }
+
+    private IEnumerator PlaySubtitles(SubtitleBlock[] subtitles)
+    {
+        foreach (SubtitleBlock block in subtitles)
+        {
+            if (block == null) continue;
+
+            if (block.delay > 0f)
+                yield return new WaitForSeconds(block.delay);
+
+            SubtitleDisplay.Instance?.Show(block.text, block.duration);
+
+            yield return new WaitForSeconds(block.duration);
+        }
     }
 
     private IEnumerator TrackBeatDuration(float duration)
