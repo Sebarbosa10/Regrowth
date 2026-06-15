@@ -7,8 +7,9 @@ public class SubtitleDisplay : MonoBehaviour
     public static SubtitleDisplay Instance { get; private set; }
 
     [SerializeField] private TextMeshProUGUI subtitleText;
+    [SerializeField] private float charsPerSecond = 30f;
 
-    private Coroutine hideCoroutine;
+    private Coroutine activeCoroutine;
 
     private void Awake()
     {
@@ -22,23 +23,34 @@ public class SubtitleDisplay : MonoBehaviour
     {
         if (string.IsNullOrEmpty(text)) return;
 
-        if (hideCoroutine != null) StopCoroutine(hideCoroutine);
-
-        subtitleText.text = text;
-        subtitleText.gameObject.SetActive(true);
-        hideCoroutine = StartCoroutine(HideAfter(duration));
+        if (activeCoroutine != null) StopCoroutine(activeCoroutine);
+        activeCoroutine = StartCoroutine(TypeAndHide(text, duration));
     }
 
     public void Hide()
     {
-        if (hideCoroutine != null) { StopCoroutine(hideCoroutine); hideCoroutine = null; }
+        if (activeCoroutine != null) { StopCoroutine(activeCoroutine); activeCoroutine = null; }
         subtitleText.gameObject.SetActive(false);
         subtitleText.text = string.Empty;
     }
 
-    private IEnumerator HideAfter(float duration)
+    private IEnumerator TypeAndHide(string text, float duration)
     {
-        yield return new WaitForSeconds(duration);
+        subtitleText.text = string.Empty;
+        subtitleText.gameObject.SetActive(true);
+
+        float delay = 1f / charsPerSecond;
+        for (int i = 0; i < text.Length; i++)
+        {
+            subtitleText.text = text.Substring(0, i + 1);
+            yield return new WaitForSeconds(delay);
+        }
+
+        float typingTime = text.Length * delay;
+        float remainingTime = duration - typingTime;
+        if (remainingTime > 0f)
+            yield return new WaitForSeconds(remainingTime);
+
         Hide();
     }
 }
