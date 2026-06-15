@@ -87,6 +87,7 @@ public class NarrativeBeatManager : MonoBehaviour
         if (beat == null || beat.clip == null || audioSource == null) return;
 
         audioSource.PlayOneShot(beat.clip);
+        SubtitleDisplay.Instance?.Show(beat.description, beat.clip.length);
         StartCoroutine(TrackBeatDuration(beat.clip.length));
     }
 
