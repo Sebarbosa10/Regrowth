@@ -56,7 +56,7 @@ public class CustomUpdateManager : MonoBehaviour
             return;
         }
 
-        AddImmediate.Add(updatable);
+        AddImmediate(updatable);
     }
 
     public void Unregister(IUpdatable updatable)
@@ -69,12 +69,43 @@ public class CustomUpdateManager : MonoBehaviour
             return;
         }
 
-        RemoveImmediate.Add(updatable);
+        RemoveImmediate(updatable);
     }
 
     private void AddImmediate(IUpdatable updatable)
     {
         indexMap[updatable] = updatables.Count;
         updatables.Add(updatable);
+    }
+
+    private void RemoveImmediate(IUpdatable updatable)
+    {
+        if (!indexMap.TryGetValue(updatable, out int index)) return;
+
+        int lastIndex = updatables.Count - 1;
+        IUpdatable last = updatables[lastIndex];
+
+        updatables[index] = last;
+        indexMap[last] = index;
+
+        updatables.RemoveAt(lastIndex);
+        indexMap.Remove(updatable);
+    }
+
+    private void FlushPending()
+    {
+        if (pendingRemoves.Count > 0)
+        {
+            for (int i = 0; i < pendingRemoves.Count; i++)
+                RemoveImmediate(pendingRemoves[i]);
+            pendingRemoves.Clear();
+        }
+
+        if (pendingAdds.Count > 0)
+        {
+            for (int i = 0; i < pendingAdds.Count; i++)
+                AddImmediate(pendingAdds[i]);
+            pendingAdds.Clear();
+        }
     }
 }
