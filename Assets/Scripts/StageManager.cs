@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -73,8 +74,8 @@ public class StageManager : MonoBehaviour
 
         Instance = this;
 
-        CacheWeaponIntercatble(vacuumGun);
-        CacheWeaponIntercatble(trashGun);
+        CacheWeaponInteractable(vacuumGun);
+        CacheWeaponInteractable(trashGun);
     }
 
     private void Start()
@@ -119,19 +120,15 @@ public class StageManager : MonoBehaviour
 
     public void OnTrashDestroyed()
     {
-        trashRemaining--;
+        trashRemaining = Mathf.Max(0, trashRemaining, -1);
         RoundHUDDisplay.Instance?.RegisterDestroyed();
 
         if (trashRemaining <= 0 && !transitioning && roundStarted)
         {
             roundCleared = true;
-            Debug.Log("[StageManager] ¡Basura limpia! Guardá el arma en el holster para continuar.");
+            Debug.Log("[StageManager] Guarda el arma en el holster para continuar");
         }
     }
-
-    // ?????????????????????????????????????????
-    //  HOLSTER EVENTS
-    // ?????????????????????????????????????????
 
     private void OnAnyWeaponRemoved()
     {
@@ -151,7 +148,7 @@ public class StageManager : MonoBehaviour
 
         roundStarted = true;
         SpawnCurrentRound();
-        Debug.Log("[StageManager] Arma sacada — spawneando basura!");
+        Debug.Log("[StageManager] Arma sacada spawneando basura");
     }
 
     private void OnAnyWeaponStored()
@@ -164,14 +161,20 @@ public class StageManager : MonoBehaviour
         StartCoroutine(TransitionToNextRound());
     }
 
-    // ?????????????????????????????????????????
-    //  WEAPONS
-    // ?????????????????????????????????????????
-
     private void SetWeaponsGrabbable(bool state)
     {
         SetWeaponInteractable(vacuumGun, state);
         SetWeaponInteractable(trashGun, state);
+    }
+
+    private void CacheWeaponInteractable(GameObject weapon)
+    {
+        if (weapon == null || weaponInteractablesCache.ContainsKey(weapon)) return;
+
+        var list = new List<Component>();
+        list.AddRange(weapon.GetComponentInChildren<Oculus.Interaction.HandGrab.HandGrabInteractable>(true));
+        list.AddRange(weapon.GetComponentInChildren<Oculus.Interaction.GrabInteractable>(true));
+        list.AddRange(weapon.GetComponentInChildren<Oculus.Interaction.Grabbable>(true));
     }
 
     private void SetWeaponInteractable(GameObject weapon, bool state)
