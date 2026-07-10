@@ -154,6 +154,7 @@ public class TrashGun : MonoBehaviour, IUpdatable
 
     private void HandleModeSwitch()
     {
+
         OVRInput.Controller handController = GetHoldingHandController();
         if (handController == OVRInput.Controller.None) return;
 
@@ -174,7 +175,7 @@ public class TrashGun : MonoBehaviour, IUpdatable
 
             colorizer?.SetMode((int)currentMode);
             energySystem?.SetCurrentMode((int)currentMode, colorizer?.GetCurrentMaterial());
-            Vibrate(modeSwitchHaptic);
+            Vibrate(modeSwitchHaptic, handController);
         }
 
         switchWasPressed = switchPressed;
@@ -308,14 +309,15 @@ public class TrashGun : MonoBehaviour, IUpdatable
         Vibrate(hapticProfiles[index]);
     }
 
-    private void Vibrate(HapticProfile profile)
+    private void Vibrate(HapticProfile profile, OVRInput.Controller controller = OVRInput.Controller.None)
     {
         if (profile == null) return;
-        OVRInput.Controller controller = activeController != OVRInput.Controller.None
-            ? activeController : OVRInput.Controller.RTouch;
+        OVRInput.Controller target = controller != OVRInput.Controller.None
+            ? controller
+            : (activeController != OVRInput.Controller.None ? activeController : OVRInput.Controller.RTouch);
 
-        OVRInput.SetControllerVibration(profile.frequency, profile.amplitude, controller);
-        StartCoroutine(StopVibration(profile.duration, controller));
+        OVRInput.SetControllerVibration(profile.frequency, profile.amplitude, target);
+        StartCoroutine(StopVibration(profile.duration, target));
     }
 
     private IEnumerator StopVibration(float delay, OVRInput.Controller controller)
