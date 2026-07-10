@@ -172,23 +172,33 @@ public class StageManager : MonoBehaviour
         if (weapon == null || weaponInteractablesCache.ContainsKey(weapon)) return;
 
         var list = new List<Component>();
-        list.AddRange(weapon.GetComponentInChildren<Oculus.Interaction.HandGrab.HandGrabInteractable>(true));
-        list.AddRange(weapon.GetComponentInChildren<Oculus.Interaction.GrabInteractable>(true));
-        list.AddRange(weapon.GetComponentInChildren<Oculus.Interaction.Grabbable>(true));
+        list.AddRange(weapon.GetComponentsInChildren<Oculus.Interaction.HandGrab.HandGrabInteractable>(true));
+        list.AddRange(weapon.GetComponentsInChildren<Oculus.Interaction.GrabInteractable>(true));
+        list.AddRange(weapon.GetComponentsInChildren<Oculus.Interaction.Grabbable>(true));
     }
 
     private void SetWeaponInteractable(GameObject weapon, bool state)
     {
         if (weapon == null) return;
 
-        foreach (var interactable in weapon.GetComponentsInChildren<Oculus.Interaction.HandGrab.HandGrabInteractable>(true))
-            interactable.enabled = state;
+        if(!weaponInteractablesCache.TryGetValue(weapon, out var interactables))
+        {
+            CacheWeaponInteractable(weapon);
+            interactables = weaponInteractablesCache[weapon];
+        }
 
-        foreach (var interactable in weapon.GetComponentsInChildren<Oculus.Interaction.GrabInteractable>(true))
-            interactable.enabled = state;
+        foreach (var component in interactables)
+        {
+            if (component == null)
+            {
+                continue;
+            }
 
-        foreach (var interactable in weapon.GetComponentsInChildren<Oculus.Interaction.Grabbable>(true))
-            interactable.enabled = state;
+            switch (component)
+            {
+
+            }
+        }
     }
 
     private void ResetWeaponsToHolsters()
