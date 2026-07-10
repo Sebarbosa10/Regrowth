@@ -22,6 +22,7 @@ public class GunEnergySystem : MonoBehaviour, IUpdatable
     private Vector3 lastControllerPos;
     private int currentModeIndex = 0;
     private Material lastChargedMaterial;
+    private OVRInput.Controller activeShakeController = OVRInput.Controller.None;
 
     public bool IsDepleted => isDepleted;
 
@@ -58,11 +59,15 @@ public class GunEnergySystem : MonoBehaviour, IUpdatable
         if (velocity > shakeThreshold)
         {
             shakeTimer += deltaTime;
-            OVRInput.SetControllerVibration(
-                rechargeHapticFrequency,
-                rechargeHapticAmplitude * (shakeTimer / rechargeShakeTime),
-                OVRInput.Controller.RTouch
-            );
+
+            if (activeShakeController != OVRInput.Controller.None)
+            {
+                OVRInput.SetControllerVibration(
+                    rechargeHapticFrequency,
+                    rechargeHapticAmplitude * (shakeTimer / rechargeShakeTime),
+                    activeShakeController
+                );
+            }
 
             if (shakeTimer >= rechargeShakeTime)
                 Recharge();
@@ -70,7 +75,10 @@ public class GunEnergySystem : MonoBehaviour, IUpdatable
         else
         {
             shakeTimer = 0f;
+            // Frenamos vibración en ambos controles por las dudas de que se haya
+            // soltado justo cuando se estaba por cambiar de mano.
             OVRInput.SetControllerVibration(0f, 0f, OVRInput.Controller.RTouch);
+            OVRInput.SetControllerVibration(0f, 0f, OVRInput.Controller.LTouch);
         }
     }
 
@@ -111,6 +119,7 @@ public class GunEnergySystem : MonoBehaviour, IUpdatable
         shotsRemaining = maxShots;
         shakeTimer = 0f;
         OVRInput.SetControllerVibration(0f, 0f, OVRInput.Controller.RTouch);
+        OVRInput.SetControllerVibration(0f, 0f, OVRInput.Controller.LTouch);
         colorizer?.SetMode(currentModeIndex);
         if (audioSource != null && rechargedSound != null)
             audioSource.PlayOneShot(rechargedSound);
@@ -128,8 +137,18 @@ public class GunEnergySystem : MonoBehaviour, IUpdatable
         float rightGrip = OVRInput.Get(OVRInput.Axis1D.PrimaryHandTrigger, OVRInput.Controller.RTouch);
         float leftGrip = OVRInput.Get(OVRInput.Axis1D.PrimaryHandTrigger, OVRInput.Controller.LTouch);
 
-        if (rightGrip > 0.5f) return OVRInput.GetLocalControllerPosition(OVRInput.Controller.RTouch);
-        if (leftGrip > 0.5f) return OVRInput.GetLocalControllerPosition(OVRInput.Controller.LTouch);
+        if (rightGrip > 0.5f)
+        {
+            activeShakeController = OVRInput.Controller.RTouch;
+            return OVRInput.GetLocalControllerPosition(OVRInput.Controller.RTouch);
+        }
+        if (leftGrip > 0.5f)
+        {
+            activeShakeController = OVRInput.Controller.LTouch;
+            return OVRInput.GetLocalControllerPosition(OVRInput.Controller.LTouch);
+        }
+
+        activeShakeController = OVRInput.Controller.None;
         return Vector3.zero;
     }
 
