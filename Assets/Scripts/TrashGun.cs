@@ -329,9 +329,7 @@ public class TrashGun : MonoBehaviour, IUpdatable
 
     private bool IsTriggerPressed()
     {
-        // Si hay TwoHandedGunGrip, la mano que dispara es la que esta agarrando el mango (main hand),
-        // sea izquierda o derecha. Si no hay grip de dos manos, usamos activeController como fallback
-        // (ya calculado en DetectActiveController mirando ambos triggers).
+
         OVRInput.Controller handToCheck = OVRInput.Controller.None;
 
         if (twoHandedGrip != null && twoHandedGrip.IsMainHandActive)
