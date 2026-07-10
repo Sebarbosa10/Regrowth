@@ -223,7 +223,7 @@ public class StageManager : MonoBehaviour
         roundCleared = false;
         roundStarted = false;
 
-        // Bloquear todo de entrada — nadie puede tocar nada durante la transición
+        // Bloquear todo de entrada nadie puede tocar nada durante la transición
         SetWeaponsGrabbable(false);
         vacuumHolster?.Lock();
         trashGunHolster?.Lock();
@@ -234,6 +234,12 @@ public class StageManager : MonoBehaviour
         // Esperar a que termine completamente el audio del beat de fin de ronda
         yield return new WaitUntil(() =>
             NarrativeBeatManager.Instance == null || !NarrativeBeatManager.Instance.IsPlaying);
+
+        if(fadeController == null)
+        {
+            transitioning = false;
+            yield break;
+        }
 
         // Arrancar la transición de contaminación en paralelo al fade out
         if (pollutionVolume != null)
@@ -273,24 +279,16 @@ public class StageManager : MonoBehaviour
         transitioning = false;
     }
 
-    // ?????????????????????????????????????????
-    //  LOAD ROUND
-    // ?????????????????????????????????????????
-
     private void LoadRound(int roundIndex)
     {
         if (roundIndex >= rounds.Length) return;
         roundStarted = false;
         activeTrash.Clear();
         DialogueManager.Instance?.PlayDialoguesForStage(roundIndex);
-        // Beat de inicio de ronda — suena antes de que el jugador agarre el arma
+        // Beat de inicio de ronda suena antes de que el jugador agarre el arma
         NarrativeBeatManager.Instance?.OnRoundStarted(roundIndex);
-        Debug.Log($"[StageManager] Ronda {roundIndex + 1} cargada — sacá el arma para empezar");
+  
     }
-
-    // ?????????????????????????????????????????
-    //  SPAWN
-    // ?????????????????????????????????????????
 
     private void SpawnCurrentRound()
     {
