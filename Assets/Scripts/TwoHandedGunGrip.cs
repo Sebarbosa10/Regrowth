@@ -60,8 +60,6 @@ public class TwoHandedGunGrip : MonoBehaviour
         return _trackingSpaceCache;
     }
 
-    // Detecta cual mano (izq o der) esta agarrando el mainAnchor (mango/gatillo).
-    // Antes esto solo miraba RTouch, por eso la mano izquierda nunca contaba como "mano principal".
     private void DetermineMainHand()
     {
         if (mainAnchor == null)
@@ -74,8 +72,6 @@ public class TwoHandedGunGrip : MonoBehaviour
         bool rightNear = Vector3.Distance(rightHandPos, mainAnchor.position) < grabRadius;
         bool leftNear = Vector3.Distance(leftHandPos, mainAnchor.position) < grabRadius;
 
-        // Si por alguna razon las dos manos estan en el radio, se prioriza la que ya estaba activa
-        // para evitar que "tiemble" entre una y otra frame a frame.
         if (rightNear && leftNear)
         {
             mainHandController = mainHandController == OVRInput.Controller.LTouch
@@ -98,7 +94,6 @@ public class TwoHandedGunGrip : MonoBehaviour
         isMainHandActive = mainHandController != OVRInput.Controller.None;
     }
 
-    // La "mano de apoyo" es la que no quedo asignada como principal.
     private bool IsOffHandNearForwardAnchor()
     {
         if (forwardAnchor == null || mainHandController == OVRInput.Controller.None) return false;
