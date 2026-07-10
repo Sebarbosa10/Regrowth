@@ -5,7 +5,7 @@ using UnityEngine.SceneManagement;
 
 public class StageManager : MonoBehaviour
 {
-    public static StageManager Instance;
+    public static StageManager Instance { get; private set; }
 
     [System.Serializable]
     public class RoundConfig
@@ -60,7 +60,17 @@ public class StageManager : MonoBehaviour
 
     private readonly List<GameObject> activeTrash = new List<GameObject>();
 
-    private void Awake() { Instance = this; }
+    // Interactables cacheados
+    private readonly Dictionary<GameObject, Component[]> weaponInteractablesCache = new Dictionary<GameObject, Component[]>();
+
+    private void Awake()
+    {
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+    }
 
     private void Start()
     {
