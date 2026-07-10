@@ -66,16 +66,8 @@ public class StageManager : MonoBehaviour
 
     private void Awake()
     {
-        if (Instance != null && Instance != this)
-        {
-            Destroy(gameObject);
-            return;
-        }
-
+        if (Instance != null && Instance != this) { Destroy(gameObject); return; }
         Instance = this;
-
-        CacheWeaponInteractable(vacuumGun);
-        CacheWeaponInteractable(trashGun);
     }
 
     private void Start()
@@ -93,11 +85,14 @@ public class StageManager : MonoBehaviour
 
     private IEnumerator InitWithDelay()
     {
-        // Se espera 2 frames para que los holsters terminen su inicializacion 
         yield return null;
         yield return null;
+
+        CacheWeaponInteractable(vacuumGun);
+        CacheWeaponInteractable(trashGun);
+
         ResetWeaponsToHolsters();
-        SetWeaponsGrabbable(true); 
+        SetWeaponsGrabbable(true);
         LoadRound(0);
     }
 
@@ -181,19 +176,16 @@ public class StageManager : MonoBehaviour
     {
         if (weapon == null) return;
 
-        if (!weaponInteractablesCache.TryGetValue(weapon, out var interactables))
+        if (!weaponInteractablesCache.TryGetValue(weapon, out var interactables) || interactables.Length == 0)
         {
+            weaponInteractablesCache.Remove(weapon);
             CacheWeaponInteractable(weapon);
             interactables = weaponInteractablesCache[weapon];
         }
 
         foreach (var component in interactables)
         {
-            if (component == null)
-            {
-                continue;
-            }
-
+            if (component == null) continue;
             switch (component)
             {
                 case Oculus.Interaction.HandGrab.HandGrabInteractable h: h.enabled = state; break;
