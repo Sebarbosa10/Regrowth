@@ -6,7 +6,10 @@ public class CustomUpdateManager : MonoBehaviour
     public static CustomUpdateManager Instance { get; private set; }
 
     private readonly List<IUpdatable> updatables = new List<IUpdatable>();
-    private readonly HashSet<IUpdatable> updatablesSet = new HashSet<IUpdatable>();
+    private readonly Dictionary<IUpdatable, int> updatablesSet = new Dictionary<IUpdatable, int>();
+
+    private readonly List<IUpdatable> pendingAdds = new List<IUpdatable>();
+    private readonly
 
     private void Awake()
     {
