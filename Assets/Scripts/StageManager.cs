@@ -70,6 +70,11 @@ public class StageManager : MonoBehaviour
             Destroy(gameObject);
             return;
         }
+
+        Instance = this;
+
+        CacheWeaponIntercatble(vacuumGun);
+        CacheWeaponIntercatble(trashGun);
     }
 
     private void Start()
@@ -87,15 +92,21 @@ public class StageManager : MonoBehaviour
 
     private IEnumerator InitWithDelay()
     {
+        // Se espera 2 frames para que los holsters terminen su inicializacion 
         yield return null;
         yield return null;
         ResetWeaponsToHolsters();
-        SetWeaponsGrabbable(true); // armas disponibles al inicio
+        SetWeaponsGrabbable(true); 
         LoadRound(0);
     }
 
     private void OnDestroy()
     {
+        if(Instance == this)
+        {
+            Instance = null;
+        }
+
         foreach (WeaponHolster holster in holsters)
         {
             if (holster != null)
@@ -105,10 +116,6 @@ public class StageManager : MonoBehaviour
             }
         }
     }
-
-    // ?????????????????????????????????????????
-    //  PUBLIC
-    // ?????????????????????????????????????????
 
     public void OnTrashDestroyed()
     {
