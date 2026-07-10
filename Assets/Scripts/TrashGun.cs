@@ -154,13 +154,16 @@ public class TrashGun : MonoBehaviour, IUpdatable
 
     private void HandleModeSwitch()
     {
+        OVRInput.Controller handController = GetHoldingHandController();
+        if (handController == OVRInput.Controller.None) return;
+
         if (energySystem != null && energySystem.IsDepleted)
         {
-            switchWasPressed = OVRInput.Get(modeSwitchButton);
+            switchWasPressed = OVRInput.Get(modeSwitchButton, handController);
             return;
         }
 
-        bool switchPressed = OVRInput.Get(modeSwitchButton);
+        bool switchPressed = OVRInput.Get(modeSwitchButton, handController);
 
         if (switchPressed && !switchWasPressed)
         {
@@ -327,16 +330,18 @@ public class TrashGun : MonoBehaviour, IUpdatable
             audioSource.PlayOneShot(shootSound);
     }
 
+    private OVRInput.Controller GetHoldingHandController()
+    {
+        if (twoHandedGrip != null && twoHandedGrip.IsMainHandActive)
+            return twoHandedGrip.MainHandController;
+        if (activeController != OVRInput.Controller.None)
+            return activeController;
+        return OVRInput.Controller.None;
+    }
+
     private bool IsTriggerPressed()
     {
-
-        OVRInput.Controller handToCheck = OVRInput.Controller.None;
-
-        if (twoHandedGrip != null && twoHandedGrip.IsMainHandActive)
-            handToCheck = twoHandedGrip.MainHandController;
-        else if (activeController != OVRInput.Controller.None)
-            handToCheck = activeController;
-
+        OVRInput.Controller handToCheck = GetHoldingHandController();
         if (handToCheck == OVRInput.Controller.None) return false;
 
         return OVRInput.Get(OVRInput.Axis1D.PrimaryIndexTrigger, handToCheck) > triggerThreshold;
