@@ -47,15 +47,17 @@ public class TrashGun : MonoBehaviour, IUpdatable
     [SerializeField] private TwoHandedGunGrip twoHandedGrip;
     [SerializeField] private GunEnergySystem energySystem;
     [SerializeField] private GunRecoil recoil;
-    [SerializeField] private HapticProfile[] hapticProfiles = new HapticProfile[]
+    [SerializeField]
+    private HapticProfile[] hapticProfiles = new HapticProfile[]
     {
         new HapticProfile { modeName = "Single", frequency = 0.8f, amplitude = 0.6f, duration = 0.08f },
         new HapticProfile { modeName = "Burst",  frequency = 0.5f, amplitude = 0.9f, duration = 0.06f },
         new HapticProfile { modeName = "Auto",   frequency = 1.0f, amplitude = 0.4f, duration = 0.05f },
         new HapticProfile { modeName = "Spread", frequency = 0.3f, amplitude = 1.0f, duration = 0.15f },
     };
-    [SerializeField] private HapticProfile modeSwitchHaptic = new HapticProfile
-        { modeName = "Switch", frequency = 0.2f, amplitude = 0.5f, duration = 0.12f };
+    [SerializeField]
+    private HapticProfile modeSwitchHaptic = new HapticProfile
+    { modeName = "Switch", frequency = 0.2f, amplitude = 0.5f, duration = 0.12f };
     [SerializeField] private FireMode currentMode = FireMode.Single;
     [SerializeField] private CustomUpdateManager updateManager;
 
@@ -179,7 +181,7 @@ public class TrashGun : MonoBehaviour, IUpdatable
     {
         if (!IsMainHandHoldingGun()) return;
 
-        bool triggerPressed = IsRightTriggerPressed();
+        bool triggerPressed = IsTriggerPressed();
 
         switch (currentMode)
         {
@@ -325,9 +327,21 @@ public class TrashGun : MonoBehaviour, IUpdatable
             audioSource.PlayOneShot(shootSound);
     }
 
-    private bool IsRightTriggerPressed()
+    private bool IsTriggerPressed()
     {
-        return OVRInput.Get(OVRInput.Axis1D.PrimaryIndexTrigger, OVRInput.Controller.RTouch) > triggerThreshold;
+        // Si hay TwoHandedGunGrip, la mano que dispara es la que esta agarrando el mango (main hand),
+        // sea izquierda o derecha. Si no hay grip de dos manos, usamos activeController como fallback
+        // (ya calculado en DetectActiveController mirando ambos triggers).
+        OVRInput.Controller handToCheck = OVRInput.Controller.None;
+
+        if (twoHandedGrip != null && twoHandedGrip.IsMainHandActive)
+            handToCheck = twoHandedGrip.MainHandController;
+        else if (activeController != OVRInput.Controller.None)
+            handToCheck = activeController;
+
+        if (handToCheck == OVRInput.Controller.None) return false;
+
+        return OVRInput.Get(OVRInput.Axis1D.PrimaryIndexTrigger, handToCheck) > triggerThreshold;
     }
 
     private void OnDrawGizmosSelected()
