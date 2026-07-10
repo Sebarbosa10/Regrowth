@@ -172,28 +172,28 @@ public class StageManager : MonoBehaviour
         list.AddRange(weapon.GetComponentsInChildren<Oculus.Interaction.Grabbable>(true));
     }
 
-    private void SetWeaponInteractable(GameObject weapon, bool state)
+  private void SetWeaponInteractable(GameObject weapon, bool state)
+{
+    if (weapon == null) return;
+
+    if (!weaponInteractablesCache.TryGetValue(weapon, out var interactables) || interactables.Length == 0)
     {
-        if (weapon == null) return;
+        weaponInteractablesCache.Remove(weapon);
+        CacheWeaponInteractable(weapon);
+        interactables = weaponInteractablesCache[weapon];
+    }
 
-        if (!weaponInteractablesCache.TryGetValue(weapon, out var interactables) || interactables.Length == 0)
+    foreach (var component in interactables)
+    {
+        if (component == null) continue;
+        switch (component)
         {
-            weaponInteractablesCache.Remove(weapon);
-            CacheWeaponInteractable(weapon);
-            interactables = weaponInteractablesCache[weapon];
-        }
-
-        foreach (var component in interactables)
-        {
-            if (component == null) continue;
-            switch (component)
-            {
-                case Oculus.Interaction.HandGrab.HandGrabInteractable h: h.enabled = state; break;
-                case Oculus.Interaction.GrabInteractable g: g.enabled = state; break;
-                case Oculus.Interaction.Grabbable gr: gr.enabled = state; break;
-            }
+            case Oculus.Interaction.HandGrab.HandGrabInteractable h: h.enabled = state; break;
+            case Oculus.Interaction.GrabInteractable g: g.enabled = state; break;
+            case Oculus.Interaction.Grabbable gr: gr.enabled = state; break;
         }
     }
+}
 
     private void ResetWeaponsToHolsters()
     {
