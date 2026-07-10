@@ -1,12 +1,11 @@
 using System.Collections;
 using System.Collections.Generic;
-using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
 public class StageManager : MonoBehaviour
 {
-    public static StageManager Instance { get; private set; }
+    public static StageManager Instance;
 
     [System.Serializable]
     public class RoundConfig
@@ -61,14 +60,7 @@ public class StageManager : MonoBehaviour
 
     private readonly List<GameObject> activeTrash = new List<GameObject>();
 
-    // Interactables cacheados
-    private readonly Dictionary<GameObject, Component[]> weaponInteractablesCache = new Dictionary<GameObject, Component[]>();
-
-    private void Awake()
-    {
-        if (Instance != null && Instance != this) { Destroy(gameObject); return; }
-        Instance = this;
-    }
+    private void Awake() { Instance = this; }
 
     private void Start()
     {
@@ -87,22 +79,13 @@ public class StageManager : MonoBehaviour
     {
         yield return null;
         yield return null;
-
-        CacheWeaponInteractable(vacuumGun);
-        CacheWeaponInteractable(trashGun);
-
         ResetWeaponsToHolsters();
-        SetWeaponsGrabbable(true);
+        SetWeaponsGrabbable(true); // armas disponibles al inicio
         LoadRound(0);
     }
 
     private void OnDestroy()
     {
-        if(Instance == this)
-        {
-            Instance = null;
-        }
-
         foreach (WeaponHolster holster in holsters)
         {
             if (holster != null)
@@ -115,16 +98,14 @@ public class StageManager : MonoBehaviour
 
     public void OnTrashDestroyed()
     {
-        trashRemaining = Mathf.Max(0, trashRemaining, -1);
+        trashRemaining--;
         RoundHUDDisplay.Instance?.RegisterDestroyed();
 
         if (trashRemaining <= 0 && !transitioning && roundStarted)
         {
             roundCleared = true;
-            Debug.Log("[StageManager] Guarda el arma en el holster para continuar");
         }
     }
-
     private void OnAnyWeaponRemoved()
     {
         if (roundStarted || transitioning) return;
@@ -143,7 +124,7 @@ public class StageManager : MonoBehaviour
 
         roundStarted = true;
         SpawnCurrentRound();
-        Debug.Log("[StageManager] Arma sacada spawneando basura");
+        Debug.Log("[StageManager] Arma sacada — spawneando basura!");
     }
 
     private void OnAnyWeaponStored()
@@ -162,38 +143,19 @@ public class StageManager : MonoBehaviour
         SetWeaponInteractable(trashGun, state);
     }
 
-    private void CacheWeaponInteractable(GameObject weapon)
+    private void SetWeaponInteractable(GameObject weapon, bool state)
     {
-        if (weapon == null || weaponInteractablesCache.ContainsKey(weapon)) return;
+        if (weapon == null) return;
 
-        var list = new List<Component>();
-        list.AddRange(weapon.GetComponentsInChildren<Oculus.Interaction.HandGrab.HandGrabInteractable>(true));
-        list.AddRange(weapon.GetComponentsInChildren<Oculus.Interaction.GrabInteractable>(true));
-        list.AddRange(weapon.GetComponentsInChildren<Oculus.Interaction.Grabbable>(true));
+        foreach (var interactable in weapon.GetComponentsInChildren<Oculus.Interaction.HandGrab.HandGrabInteractable>(true))
+            interactable.enabled = state;
+
+        foreach (var interactable in weapon.GetComponentsInChildren<Oculus.Interaction.GrabInteractable>(true))
+            interactable.enabled = state;
+
+        foreach (var interactable in weapon.GetComponentsInChildren<Oculus.Interaction.Grabbable>(true))
+            interactable.enabled = state;
     }
-
-  private void SetWeaponInteractable(GameObject weapon, bool state)
-{
-    if (weapon == null) return;
-
-    if (!weaponInteractablesCache.TryGetValue(weapon, out var interactables) || interactables.Length == 0)
-    {
-        weaponInteractablesCache.Remove(weapon);
-        CacheWeaponInteractable(weapon);
-        interactables = weaponInteractablesCache[weapon];
-    }
-
-    foreach (var component in interactables)
-    {
-        if (component == null) continue;
-        switch (component)
-        {
-            case Oculus.Interaction.HandGrab.HandGrabInteractable h: h.enabled = state; break;
-            case Oculus.Interaction.GrabInteractable g: g.enabled = state; break;
-            case Oculus.Interaction.Grabbable gr: gr.enabled = state; break;
-        }
-    }
-}
 
     private void ResetWeaponsToHolsters()
     {
@@ -215,7 +177,7 @@ public class StageManager : MonoBehaviour
         roundCleared = false;
         roundStarted = false;
 
-        // Bloquear todo de entrada nadie puede tocar nada durante la transición
+        // Bloquear todo de entrada — nadie puede tocar nada durante la transición
         SetWeaponsGrabbable(false);
         vacuumHolster?.Lock();
         trashGunHolster?.Lock();
@@ -226,12 +188,6 @@ public class StageManager : MonoBehaviour
         // Esperar a que termine completamente el audio del beat de fin de ronda
         yield return new WaitUntil(() =>
             NarrativeBeatManager.Instance == null || !NarrativeBeatManager.Instance.IsPlaying);
-
-        if(fadeController == null)
-        {
-            transitioning = false;
-            yield break;
-        }
 
         // Arrancar la transición de contaminación en paralelo al fade out
         if (pollutionVolume != null)
@@ -277,10 +233,11 @@ public class StageManager : MonoBehaviour
         roundStarted = false;
         activeTrash.Clear();
         DialogueManager.Instance?.PlayDialoguesForStage(roundIndex);
-        // Beat de inicio de ronda suena antes de que el jugador agarre el arma
+        // Beat de inicio de ronda — suena antes de que el jugador agarre el arma
         NarrativeBeatManager.Instance?.OnRoundStarted(roundIndex);
-  
+        Debug.Log($"[StageManager] Ronda {roundIndex + 1} cargada — sacá el arma para empezar");
     }
+
 
     private void SpawnCurrentRound()
     {
@@ -294,6 +251,7 @@ public class StageManager : MonoBehaviour
         roundTotal = spawned;
 
         RoundHUDDisplay.Instance?.SetRoundTotal(spawned);
+        Debug.Log($"[StageManager] Ronda {currentRound + 1} — {spawned} objetos spawneados");
     }
 
     private int SpawnTrash(RoundConfig config)
@@ -309,7 +267,8 @@ public class StageManager : MonoBehaviour
 
         for (int i = 0; i < config.spawnCount; i++)
         {
-            if (!TryGetSpawnPosition(center, out Vector3 spawnPos))
+            Vector3 spawnPos;
+            if (!TryGetSpawnPosition(center, out spawnPos))
             {
                 Debug.LogWarning($"[StageManager] No se encontro posicion valida para objeto {i}");
                 continue;
@@ -353,11 +312,8 @@ public class StageManager : MonoBehaviour
     private void DestroyActiveTrash()
     {
         foreach (GameObject obj in activeTrash)
-        {
             if (obj != null) Destroy(obj);
-            activeTrash.Clear();
-        }
-
+        activeTrash.Clear();
     }
 
 
