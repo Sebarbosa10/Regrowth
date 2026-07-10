@@ -181,7 +181,7 @@ public class StageManager : MonoBehaviour
     {
         if (weapon == null) return;
 
-        if(!weaponInteractablesCache.TryGetValue(weapon, out var interactables))
+        if (!weaponInteractablesCache.TryGetValue(weapon, out var interactables))
         {
             CacheWeaponInteractable(weapon);
             interactables = weaponInteractablesCache[weapon];
@@ -196,7 +196,9 @@ public class StageManager : MonoBehaviour
 
             switch (component)
             {
-
+                case Oculus.Interaction.HandGrab.HandGrabInteractable h: h.enabled = state; break;
+                case Oculus.Interaction.GrabInteractable g: g.enabled = state; break;
+                case Oculus.Interaction.Grabbable gr: gr.enabled = state; break;
             }
         }
     }
@@ -214,10 +216,6 @@ public class StageManager : MonoBehaviour
             trashGunHolster.ForceStore(trashGun);
         }
     }
-
-    // ?????????????????????????????????????????
-    //  TRANSITION
-    // ?????????????????????????????????????????
 
     private IEnumerator TransitionToNextRound()
     {
