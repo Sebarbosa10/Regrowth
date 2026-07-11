@@ -33,9 +33,12 @@ public class MagazineReload : MonoBehaviour
         pullAxisNormalized = pullLocalDirection.normalized;
     }
 
+    private Quaternion restLocalRotation;
+
     private void Start()
     {
         restLocalPosition = transform.localPosition;
+        restLocalRotation = transform.localRotation;
     }
 
     private void OnEnable()
@@ -50,23 +53,41 @@ public class MagazineReload : MonoBehaviour
             grabbable.WhenPointerEventRaised -= HandlePointerEvent;
     }
 
+    private Vector3 lastPointerWorldPos;
+    private bool havePointerPos = false;
+
     private void HandlePointerEvent(PointerEvent evt)
     {
         switch (evt.Type)
         {
             case PointerEventType.Select:
                 OnGrabStart(evt.Pose.position);
+                lastPointerWorldPos = evt.Pose.position;
+                havePointerPos = true;
                 break;
 
             case PointerEventType.Move:
+                lastPointerWorldPos = evt.Pose.position;
+                havePointerPos = true;
                 if (isGrabbed) OnGrabMove(evt.Pose.position);
                 break;
 
             case PointerEventType.Unselect:
             case PointerEventType.Cancel:
+                havePointerPos = false;
                 OnGrabEnd();
                 break;
         }
+    }
+
+    private void LateUpdate()
+    {
+        if (isGrabbed && havePointerPos)
+        {
+            OnGrabMove(lastPointerWorldPos);
+        }
+
+        transform.localRotation = restLocalRotation;
     }
 
     private bool IsGunHeld()
@@ -126,8 +147,6 @@ public class MagazineReload : MonoBehaviour
 
     private void TriggerReload()
     {
-        if (energySystem != null && energySystem.IsFull) return;
-
         if (audioSource != null && reloadTriggerSound != null)
             audioSource.PlayOneShot(reloadTriggerSound);
 
