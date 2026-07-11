@@ -12,11 +12,11 @@ public class GunEnergySystem : MonoBehaviour
 
     private int shotsRemaining;
     private bool isDepleted = false;
-    private bool isFull = true;
     private int currentModeIndex = 0;
     private Material lastChargedMaterial;
-    public bool IsFull => shotsRemaining >= maxShots;
+
     public bool IsDepleted => isDepleted;
+    public bool IsFull => shotsRemaining >= maxShots;
 
     private void Start()
     {

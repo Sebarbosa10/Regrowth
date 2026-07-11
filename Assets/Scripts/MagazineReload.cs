@@ -96,9 +96,16 @@ public class MagazineReload : MonoBehaviour
         return gunGrabbable.SelectingPointsCount > 0;
     }
 
+    private bool CanReload()
+    {
+        if (!IsGunHeld()) return false;
+        if (energySystem != null && energySystem.IsFull) return false;
+        return true;
+    }
+
     private void OnGrabStart(Vector3 pointerWorldPos)
     {
-        if (!IsGunHeld()) return;
+        if (!CanReload()) return;
 
         if (returnRoutine != null)
         {
@@ -114,7 +121,7 @@ public class MagazineReload : MonoBehaviour
 
     private void OnGrabMove(Vector3 pointerWorldPos)
     {
-        if (!IsGunHeld())
+        if (!CanReload())
         {
             OnGrabEnd();
             return;
@@ -133,7 +140,7 @@ public class MagazineReload : MonoBehaviour
         if (!reloadTriggeredThisGrab && distanceAlongAxis >= maxPullDistance * reloadTriggerThreshold)
         {
             reloadTriggeredThisGrab = true;
-            TriggerReload();
+            MarkReloadPrimed();
         }
     }
 
@@ -142,18 +149,21 @@ public class MagazineReload : MonoBehaviour
         if (!isGrabbed) return;
 
         isGrabbed = false;
-        returnRoutine = StartCoroutine(ReturnToRest());
+        returnRoutine = StartCoroutine(ReturnToRest(reloadTriggeredThisGrab));
     }
 
-    private void TriggerReload()
+    private void MarkReloadPrimed()
     {
         if (audioSource != null && reloadTriggerSound != null)
             audioSource.PlayOneShot(reloadTriggerSound);
+    }
 
+    private void ApplyReload()
+    {
         energySystem?.ForceRecharge();
     }
 
-    private IEnumerator ReturnToRest()
+    private IEnumerator ReturnToRest(bool triggerReloadOnArrival)
     {
         Vector3 startPos = transform.localPosition;
         float elapsed = 0f;
@@ -163,13 +173,18 @@ public class MagazineReload : MonoBehaviour
         {
             elapsed += Time.deltaTime;
             float t = elapsed / duration;
-            t = 1f - (1f - t) * (1f - t); 
+            t = 1f - (1f - t) * (1f - t);
             transform.localPosition = Vector3.Lerp(startPos, restLocalPosition, t);
             yield return null;
         }
 
         transform.localPosition = restLocalPosition;
         returnRoutine = null;
+
+        if (triggerReloadOnArrival)
+        {
+            ApplyReload();
+        }
     }
 
     private void OnDrawGizmosSelected()

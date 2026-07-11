@@ -80,7 +80,7 @@ public class StageManager : MonoBehaviour
         yield return null;
         yield return null;
         ResetWeaponsToHolsters();
-        SetWeaponsGrabbable(true); // armas disponibles al inicio
+        SetWeaponsGrabbable(true);
         LoadRound(0);
     }
 
@@ -117,8 +117,7 @@ public class StageManager : MonoBehaviour
         }
         if (!anyRemoved) return;
 
-        // Solo en la ronda 0 el dissolve lo dispara el primer agarre.
-        // En rondas 1 y 2, el dissolve ya lo maneja el beat de audio (PlayBeatThenDissolve).
+ 
         if (currentRound == 0)
             NarrativeBeatManager.Instance?.OnFirstGrab();
 
@@ -177,19 +176,15 @@ public class StageManager : MonoBehaviour
         roundCleared = false;
         roundStarted = false;
 
-        // Bloquear todo de entrada — nadie puede tocar nada durante la transición
         SetWeaponsGrabbable(false);
         vacuumHolster?.Lock();
         trashGunHolster?.Lock();
 
-        // Beat de fin de ronda
         NarrativeBeatManager.Instance?.OnRoundCompleted(currentRound);
 
-        // Esperar a que termine completamente el audio del beat de fin de ronda
         yield return new WaitUntil(() =>
             NarrativeBeatManager.Instance == null || !NarrativeBeatManager.Instance.IsPlaying);
 
-        // Arrancar la transición de contaminación en paralelo al fade out
         if (pollutionVolume != null)
             StartCoroutine(pollutionVolume.TransitionToStage(currentRound + 1, fadeController.FadeDuration));
 
@@ -219,7 +214,6 @@ public class StageManager : MonoBehaviour
 
         yield return StartCoroutine(fadeController.FadeIn());
 
-        // Desbloquear todo después del fade
         vacuumHolster?.Unlock();
         trashGunHolster?.Unlock();
         SetWeaponsGrabbable(true);
@@ -233,7 +227,6 @@ public class StageManager : MonoBehaviour
         roundStarted = false;
         activeTrash.Clear();
         DialogueManager.Instance?.PlayDialoguesForStage(roundIndex);
-        // Beat de inicio de ronda — suena antes de que el jugador agarre el arma
         NarrativeBeatManager.Instance?.OnRoundStarted(roundIndex);
         Debug.Log($"[StageManager] Ronda {roundIndex + 1} cargada — sacá el arma para empezar");
     }
@@ -276,8 +269,8 @@ public class StageManager : MonoBehaviour
 
             GameObject prefab = config.trashPrefabs[Random.Range(0, config.trashPrefabs.Length)];
             if (prefab == null) continue;
-
             GameObject obj = Instantiate(prefab, spawnPos, Random.rotation);
+
             activeTrash.Add(obj);
             spawned++;
         }

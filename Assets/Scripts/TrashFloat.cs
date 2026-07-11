@@ -42,7 +42,14 @@ public class TrashFloat : MonoBehaviour, IUpdatable
 
     private void OnEnable()
     {
-        if (CustomUpdateManager.Instance != null) CustomUpdateManager.Instance.Register(this);
+        if (CustomUpdateManager.Instance != null)
+        {
+            CustomUpdateManager.Instance.Register(this);
+        }
+        else
+        {
+            Debug.LogWarning($"[TrashFloat] CustomUpdateManager.Instance es null al activar {gameObject.name}", this);
+        }
     }
 
     private void OnDisable()
