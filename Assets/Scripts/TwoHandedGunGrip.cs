@@ -35,7 +35,11 @@ public class TwoHandedGunGrip : MonoBehaviour
         UpdateHandPositions();
         DetermineMainHand();
         isTwoHanded = isMainHandActive && IsOffHandNearForwardAnchor();
-        if (isTwoHanded) ApplyTwoHandedRotation();
+
+        if (!isMainHandActive) return;
+
+        Quaternion targetRot = isTwoHanded ? ComputeTwoHandedTargetRotation() : ComputeMainHandTargetRotation();
+        ApplyGripSnap(targetRot);
     }
 
     private void UpdateHandPositions()
@@ -106,24 +110,45 @@ public class TwoHandedGunGrip : MonoBehaviour
         return Vector3.Distance(offHandPos, forwardAnchor.position) < grabRadius && offGrip > gripThreshold;
     }
 
-    private void ApplyTwoHandedRotation()
+
+    private Quaternion ComputeTwoHandedTargetRotation()
     {
         bool mainIsRight = mainHandController == OVRInput.Controller.RTouch;
         Vector3 mainPos = mainIsRight ? rightHandPos : leftHandPos;
         Vector3 offPos = mainIsRight ? leftHandPos : rightHandPos;
 
         Vector3 aimDir = (offPos - mainPos).normalized;
-        if (aimDir == Vector3.zero) return;
+        if (aimDir == Vector3.zero) return rb.rotation;
 
         Vector3 mainHandUp = OVRInput.GetLocalControllerRotation(mainHandController) * Vector3.up;
 
         Transform ts = FindTrackingSpace();
         if (ts != null) mainHandUp = ts.TransformDirection(mainHandUp);
 
-        Quaternion targetRot = Quaternion.LookRotation(aimDir, mainHandUp);
-        if (rollOffset != 0f) targetRot *= Quaternion.Euler(0f, 0f, rollOffset);
+        Quaternion lookRot = Quaternion.LookRotation(aimDir, mainHandUp);
+        if (rollOffset != 0f) lookRot *= Quaternion.Euler(0f, 0f, rollOffset);
 
-        rb.MoveRotation(Quaternion.Slerp(rb.rotation, targetRot, rotationBlend * Time.fixedDeltaTime));
+        return Quaternion.Slerp(rb.rotation, lookRot, rotationBlend * Time.fixedDeltaTime);
+    }
+
+    private Quaternion ComputeMainHandTargetRotation()
+    {
+        Quaternion controllerRot = OVRInput.GetLocalControllerRotation(mainHandController);
+
+        Transform ts = FindTrackingSpace();
+        if (ts != null) controllerRot = ts.rotation * controllerRot;
+
+        return controllerRot * Quaternion.Inverse(mainAnchor.localRotation);
+    }
+
+
+    private void ApplyGripSnap(Quaternion targetRot)
+    {
+        Vector3 mainHandPos = mainHandController == OVRInput.Controller.RTouch ? rightHandPos : leftHandPos;
+        Vector3 targetPos = mainHandPos - (targetRot * mainAnchor.localPosition);
+
+        rb.MoveRotation(targetRot);
+        rb.MovePosition(targetPos);
     }
 
     private void OnDrawGizmos()
