@@ -23,6 +23,7 @@ public class TwoHandedGunGrip : MonoBehaviour
     public OVRInput.Controller MainHandController => mainHandController;
 
     private OVRInput.Controller mainHandController = OVRInput.Controller.None;
+    private bool wasHeldLastFrame = false;
 
     private Transform _trackingSpaceCache;
     private bool _trackingSpaceSearched = false;
@@ -34,13 +35,24 @@ public class TwoHandedGunGrip : MonoBehaviour
 
     private void LateUpdate()
     {
-        if (grabbable == null || grabbable.SelectingPointsCount <= 0)
+        bool isHeld = grabbable != null && grabbable.SelectingPointsCount > 0;
+
+        if (!isHeld)
         {
+            if (wasHeldLastFrame && rb != null)
+            {
+                rb.velocity = Vector3.zero;
+                rb.angularVelocity = Vector3.zero;
+            }
+
             isMainHandActive = false;
             isTwoHanded = false;
             mainHandController = OVRInput.Controller.None;
+            wasHeldLastFrame = false;
             return;
         }
+
+        wasHeldLastFrame = true;
 
         UpdateHandPositions();
         DetermineMainHand();
@@ -146,6 +158,7 @@ public class TwoHandedGunGrip : MonoBehaviour
 
         Transform ts = FindTrackingSpace();
         if (ts != null) controllerRot = ts.rotation * controllerRot;
+
         return controllerRot * Quaternion.Inverse(mainAnchor.localRotation);
     }
 
