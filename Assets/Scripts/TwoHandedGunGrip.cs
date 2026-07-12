@@ -1,7 +1,9 @@
 using UnityEngine;
+using Oculus.Interaction;
 
 public class TwoHandedGunGrip : MonoBehaviour
 {
+    [SerializeField] private Grabbable grabbable;
     [SerializeField] private Transform mainAnchor;
     [SerializeField] private Transform forwardAnchor;
     [SerializeField] private float grabRadius = 0.12f;
@@ -30,8 +32,16 @@ public class TwoHandedGunGrip : MonoBehaviour
         rb = GetComponent<Rigidbody>();
     }
 
-    private void FixedUpdate()
+    private void LateUpdate()
     {
+        if (grabbable == null || grabbable.SelectingPointsCount <= 0)
+        {
+            isMainHandActive = false;
+            isTwoHanded = false;
+            mainHandController = OVRInput.Controller.None;
+            return;
+        }
+
         UpdateHandPositions();
         DetermineMainHand();
         isTwoHanded = isMainHandActive && IsOffHandNearForwardAnchor();
@@ -110,7 +120,6 @@ public class TwoHandedGunGrip : MonoBehaviour
         return Vector3.Distance(offHandPos, forwardAnchor.position) < grabRadius && offGrip > gripThreshold;
     }
 
-
     private Quaternion ComputeTwoHandedTargetRotation()
     {
         bool mainIsRight = mainHandController == OVRInput.Controller.RTouch;
@@ -118,7 +127,7 @@ public class TwoHandedGunGrip : MonoBehaviour
         Vector3 offPos = mainIsRight ? leftHandPos : rightHandPos;
 
         Vector3 aimDir = (offPos - mainPos).normalized;
-        if (aimDir == Vector3.zero) return rb.rotation;
+        if (aimDir == Vector3.zero) return transform.rotation;
 
         Vector3 mainHandUp = OVRInput.GetLocalControllerRotation(mainHandController) * Vector3.up;
 
@@ -128,7 +137,7 @@ public class TwoHandedGunGrip : MonoBehaviour
         Quaternion lookRot = Quaternion.LookRotation(aimDir, mainHandUp);
         if (rollOffset != 0f) lookRot *= Quaternion.Euler(0f, 0f, rollOffset);
 
-        return Quaternion.Slerp(rb.rotation, lookRot, rotationBlend * Time.fixedDeltaTime);
+        return Quaternion.Slerp(transform.rotation, lookRot, rotationBlend * Time.deltaTime);
     }
 
     private Quaternion ComputeMainHandTargetRotation()
@@ -137,18 +146,17 @@ public class TwoHandedGunGrip : MonoBehaviour
 
         Transform ts = FindTrackingSpace();
         if (ts != null) controllerRot = ts.rotation * controllerRot;
-
         return controllerRot * Quaternion.Inverse(mainAnchor.localRotation);
     }
-
 
     private void ApplyGripSnap(Quaternion targetRot)
     {
         Vector3 mainHandPos = mainHandController == OVRInput.Controller.RTouch ? rightHandPos : leftHandPos;
-        Vector3 targetPos = mainHandPos - (targetRot * mainAnchor.localPosition);
+        Vector3 scaledLocalOffset = Vector3.Scale(mainAnchor.localPosition, transform.lossyScale);
+        Vector3 targetPos = mainHandPos - (targetRot * scaledLocalOffset);
 
-        rb.MoveRotation(targetRot);
-        rb.MovePosition(targetPos);
+        transform.rotation = targetRot;
+        transform.position = targetPos;
     }
 
     private void OnDrawGizmos()
