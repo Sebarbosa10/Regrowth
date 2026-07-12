@@ -25,6 +25,11 @@ public class TwoHandedGunGrip : MonoBehaviour
     private OVRInput.Controller mainHandController = OVRInput.Controller.None;
     private bool wasHeldLastFrame = false;
 
+    private Vector3 lastHeldPosition;
+    private Quaternion lastHeldRotation = Quaternion.identity;
+    private int releaseGraceFramesRemaining = 0;
+    private const int ReleaseGraceFrames = 5;
+
     private Transform _trackingSpaceCache;
     private bool _trackingSpaceSearched = false;
 
@@ -39,10 +44,23 @@ public class TwoHandedGunGrip : MonoBehaviour
 
         if (!isHeld)
         {
-            if (wasHeldLastFrame && rb != null)
+            if (wasHeldLastFrame)
             {
+                releaseGraceFramesRemaining = ReleaseGraceFrames;
+            }
+
+            if (rb != null)
+            {
+                rb.isKinematic = true;
                 rb.velocity = Vector3.zero;
                 rb.angularVelocity = Vector3.zero;
+            }
+
+            if (releaseGraceFramesRemaining > 0)
+            {
+                transform.position = lastHeldPosition;
+                transform.rotation = lastHeldRotation;
+                releaseGraceFramesRemaining--;
             }
 
             isMainHandActive = false;
@@ -62,6 +80,9 @@ public class TwoHandedGunGrip : MonoBehaviour
 
         Quaternion targetRot = isTwoHanded ? ComputeTwoHandedTargetRotation() : ComputeMainHandTargetRotation();
         ApplyGripSnap(targetRot);
+
+        lastHeldPosition = transform.position;
+        lastHeldRotation = transform.rotation;
     }
 
     private void UpdateHandPositions()
@@ -158,7 +179,6 @@ public class TwoHandedGunGrip : MonoBehaviour
 
         Transform ts = FindTrackingSpace();
         if (ts != null) controllerRot = ts.rotation * controllerRot;
-
         return controllerRot * Quaternion.Inverse(mainAnchor.localRotation);
     }
 
