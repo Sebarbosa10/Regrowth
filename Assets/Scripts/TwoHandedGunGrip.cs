@@ -70,6 +70,13 @@ public class TwoHandedGunGrip : MonoBehaviour
             return;
         }
 
+        RefreshMainHandSnap();
+    }
+
+    public void RefreshMainHandSnap()
+    {
+        if (grabbable == null || grabbable.SelectingPointsCount <= 0) return;
+
         wasHeldLastFrame = true;
 
         UpdateHandPositions();

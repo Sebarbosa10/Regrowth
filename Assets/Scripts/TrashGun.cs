@@ -89,6 +89,8 @@ public class TrashGun : MonoBehaviour, IUpdatable
         if (grabbable == null || muzzle == null) return;
         if (grabbable.SelectingPointsCount <= 0) return;
 
+        twoHandedGrip?.RefreshMainHandSnap();
+
         DetectActiveController();
 
         if (NarrativeBeatManager.Instance != null && NarrativeBeatManager.Instance.IsPlaying) return;
@@ -154,7 +156,6 @@ public class TrashGun : MonoBehaviour, IUpdatable
 
     private void HandleModeSwitch()
     {
-
         OVRInput.Controller handController = GetHoldingHandController();
         if (handController == OVRInput.Controller.None) return;
 
