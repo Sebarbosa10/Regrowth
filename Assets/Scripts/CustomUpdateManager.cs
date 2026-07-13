@@ -13,6 +13,8 @@ public class CustomUpdateManager : MonoBehaviour
     {
         if (Instance != null && Instance != this) { Destroy(gameObject); return; }
         Instance = this;
+        Application.targetFrameRate = 72;
+        OVRManager.display.displayFrequency = 72f;
     }
     private void OnDestroy()
     {
