@@ -258,13 +258,15 @@ public class TrashGun : MonoBehaviour, IUpdatable
     private IEnumerator FireBurst()
     {
         isBursting = true;
+        Vector3 origin = muzzle.position;
+        Vector3 direction = muzzle.forward;
         for (int i = 0; i < burstCount; i++)
         {
             PlayShootSound();
-            Hitscan(muzzle.position, muzzle.forward);
+            Hitscan(origin, direction);
             VibrateForMode();
             recoil?.ApplyRecoil((int)currentMode);
-            yield return new WaitForSeconds(burstDelay);
+            if (i < burstCount - 1) yield return new WaitForSeconds(burstDelay);
         }
         isBursting = false;
     }
