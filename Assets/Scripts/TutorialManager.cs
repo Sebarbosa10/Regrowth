@@ -81,7 +81,11 @@ public class TutorialManager : MonoBehaviour
         if (energySystem != null) energySystem.OnDepleted -= OnEnergyDepleted;
 
         // Nunca dejar el juego congelado si se cambia de escena con un aviso abierto
-        if (isShowing) Time.timeScale = 1f;
+        if (isShowing)
+        {
+            Time.timeScale = 1f;
+            AudioListener.pause = false;
+        }
         if (Instance == this) Instance = null;
     }
 
@@ -151,6 +155,8 @@ public class TutorialManager : MonoBehaviour
 
         isShowing = true;
         Time.timeScale = 0f;
+        // timeScale no afecta al audio: se pausa aparte para que voz y subtitulos sigan sincronizados
+        AudioListener.pause = true;
         OVRInput.SetControllerVibration(0f, 0f, OVRInput.Controller.RTouch);
         OVRInput.SetControllerVibration(0f, 0f, OVRInput.Controller.LTouch);
 
@@ -165,6 +171,7 @@ public class TutorialManager : MonoBehaviour
 
         panelRoot.SetActive(false);
         Time.timeScale = 1f;
+        AudioListener.pause = false;
         isShowing = false;
     }
 

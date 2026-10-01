@@ -284,7 +284,9 @@ public class TrashGun : MonoBehaviour, IUpdatable
 
         for (int i = 0; i < spreadCount; i++)
         {
-            Vector3 dir = Quaternion.Euler(0f, -halfAngle + step * i, 0f) * muzzle.forward;
+            // El abanico gira sobre el eje vertical del arma, no del mundo: asi sigue al arma
+            // aunque este inclinada o apuntando hacia arriba/abajo.
+            Vector3 dir = Quaternion.AngleAxis(-halfAngle + step * i, muzzle.up) * muzzle.forward;
             Hitscan(muzzle.position, dir);
         }
 

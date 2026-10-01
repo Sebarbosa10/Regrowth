@@ -94,10 +94,11 @@ Terceros (no tocar): Houidisoft technology/ (Plasma Shader), IgniteCoders/ (Simp
 | Script | Qué hace |
 |---|---|
 | `TrashGun` | Hitscan con 4 modos (Single→Plastic, Burst→Glass, Auto→Organic, Spread→Metal). Destruye si el tag coincide. Pool de trazas `LineRenderer`, haptics, sonido |
-| `GunEnergySystem` | 10 disparos; al agotarse se recarga agitando el mando 3 s |
+| `GunEnergySystem` | Energía del arma (30 disparos en escena). Al agotarse se recarga agitando: cuenta cualquier movimiento rápido del mando que sostiene el arma (velocidad lineal o giro de muñeca, suavizada), con margen de gracia en los cambios de dirección y pérdida gradual del progreso. Evento `OnDepleted` |
 | `GunModeColorizer` | Cambia el material del arma según modo / energía |
 | `GunRecoil` | Retroceso visual del modelo (Update propio) |
-| `TwoHandedGunGrip` | Detecta mano principal / segunda mano y rota el Rigidbody (FixedUpdate) |
+| `TwoHandedGunGrip` | Solo detecta mano principal / segunda mano (`IsMainHandActive`, `IsTwoHanded`). Ya no rota el arma |
+| `GunGrabTransformer` | `ITransformer` del Interaction SDK, asignado en `MainGrip` → Grabbable → *One Grab Transformer*. Coloca el arma siempre en la misma pose respecto al mando (offsets en el Inspector) y aplica el apuntado a dos manos. Es lo **único** que debe mover el arma mientras está agarrada: el Rigidbody se queda kinematic y `ForwardGrip` (segundo Grabbable sobre el mismo transform) debe estar desactivado |
 | `WeaponHolster` | Guarda/saca el arma, auto-retorno si se aleja > 2 m, eventos `OnWeaponStored/Removed`, `Lock/Unlock` |
 | `WeaponMarker` | Marca qué holster pertenece a un arma |
 
@@ -158,14 +159,13 @@ Con `Stage 1` presente el juego va a ~30 fps; sin él va bien. Estas son las cau
 - La basura se instancia y destruye sin pool (15/30/60 `Instantiate` en un solo frame al empezar la ronda → pico).
 - `new WaitForSeconds(...)` y `new WaitUntil(...)` en corrutinas recurrentes (burst, vibración, beats).
 - `GunRecoil.Update` y `ControlsMenuToggle.Update` corren siempre, fuera del `CustomUpdateManager`.
-- `TwoHandedGunGrip` usa `FixedUpdate` con Fixed Timestep 0,02 (50 Hz) y la pantalla va a 72 Hz → jitter en la rotación a dos manos.
 - Physics collision matrix: todas las capas colisionan con todas.
 - `StageManager.SetWeaponInteractable` usa `GetComponentsInChildren` (solo en transiciones, aceptable).
 
 ### 7.3 Bugs / riesgos lógicos
 - `TrashObject.OnDestroy` también se ejecuta al limpiar la ronda (`DestroyActiveTrash`) y al descargar la escena → el contador de basura se descuenta de más (inofensivo hoy porque la ronda ya está limpia, pero frágil).
 - `TrashFloat` usa `CustomUpdateManager.Instance` en `OnEnable`, mientras que el resto usa una referencia serializada. Si `CustomUpdateManager.Awake` aún no se ha ejecutado, el objeto no se registra nunca.
-- `GunEnergySystem` vibra siempre el `RTouch`, aunque el arma esté en la mano izquierda. `TryShoot` consume el último disparo y devuelve `false` (el disparo 10 no sale).
+- `GunEnergySystem`: `TryShoot` consume el último disparo y devuelve `false` (el disparo 10 no sale).
 - `StageManager.Instance` y `DialogueManager.Instance` sin guard de duplicados; `Instance` estáticos no se limpian en `OnDestroy`.
 - Scripts no usados o legado: `TrashBullet`, prefabs `Bullet*`, `Graphics/Vacuum` (la "vacuum gun" referenciada en `StageManager`).
 - Encoding: varios `.cs` tienen caracteres rotos (`�`, `?????`). `StageManager.cs` está en Windows-1252, no en UTF-8: editarlo a nivel de bytes (p. ej. `sed -b`) o convertirlo entero a UTF-8 antes, para no corromper los textos.
@@ -192,7 +192,13 @@ Con `Stage 1` presente el juego va a ~30 fps; sin él va bien. Estas son las cau
 - **Post-procesado: se mantiene** (es importante para la estética). Solo se puede abaratar, no quitar.
 - Objetivo: **72 fps estables** es suficiente.
 
-## 10. Preguntas abiertas
+## 10. Pendientes (anotados el 2026-10-01 para la siguiente sesión)
+
+- [ ] **Textos de los botones**: revisar y cambiar el texto de los botones; decidir bien qué hay que poner en cada uno.
+- [ ] **Menú de pausa** mejor, con una pantalla de **ajustes que incluya los controles**.
+- [ ] **Texto colgando debajo de la cámara del jugador**: hay un texto que se ve debajo de la cámara; localizarlo y quitarlo o recolocarlo.
+
+## 11. Preguntas abiertas
 
 1. ¿Qué es exactamente `OCEAN` y qué hay dentro de `Stage 1` aparte de las plantas? ¿Existe un suelo/terreno (`Terrain.fbx`, `New Terrain 1.asset`) en la escena o está sin usar?
 2. ¿Hay alguna luz direccional en tiempo real? No encontré componentes `Light` en la escena (quizás vienen de un prefab). ¿Alguna otra sombra importa (arma, basura)?

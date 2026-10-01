@@ -6,13 +6,10 @@ public class TwoHandedGunGrip : MonoBehaviour
     [SerializeField] private Transform forwardAnchor;
     [SerializeField] private float grabRadius = 0.12f;
     [SerializeField] private float gripThreshold = 0.3f;
-    [SerializeField] private float rotationBlend = 12f;
-    [SerializeField] private float rollOffset = 0f;
     [SerializeField] private bool drawGizmos = true;
     [SerializeField] private bool isTwoHanded = false;
     [SerializeField] private bool isMainHandActive = false;
 
-    private Rigidbody rb;
     private Vector3 rightHandPos;
     private Vector3 leftHandPos;
 
@@ -22,17 +19,13 @@ public class TwoHandedGunGrip : MonoBehaviour
     private Transform _trackingSpaceCache;
     private bool _trackingSpaceSearched = false;
 
-    private void Awake()
-    {
-        rb = GetComponent<Rigidbody>();
-    }
-
+    // Solo detecta el estado de las manos. La rotacion a dos manos la aplica GunGrabTransformer:
+    // hacerla aqui con el Rigidbody peleaba con el agarre y desviaba los disparos.
     private void FixedUpdate()
     {
         UpdateHandPositions();
         isMainHandActive = IsRightHandNearMango();
         isTwoHanded = isMainHandActive && IsLeftHandNearCanon();
-        if (isTwoHanded) ApplyTwoHandedRotation();
     }
 
     private void UpdateHandPositions()
@@ -68,22 +61,6 @@ public class TwoHandedGunGrip : MonoBehaviour
         if (forwardAnchor == null) return false;
         float leftGrip = OVRInput.Get(OVRInput.Axis1D.PrimaryHandTrigger, OVRInput.Controller.LTouch);
         return Vector3.Distance(leftHandPos, forwardAnchor.position) < grabRadius && leftGrip > gripThreshold;
-    }
-
-    private void ApplyTwoHandedRotation()
-    {
-        Vector3 aimDir = (leftHandPos - rightHandPos).normalized;
-        if (aimDir == Vector3.zero) return;
-
-        Vector3 rightHandUp = OVRInput.GetLocalControllerRotation(OVRInput.Controller.RTouch) * Vector3.up;
-
-        Transform ts = FindTrackingSpace();
-        if (ts != null) rightHandUp = ts.TransformDirection(rightHandUp);
-
-        Quaternion targetRot = Quaternion.LookRotation(aimDir, rightHandUp);
-        if (rollOffset != 0f) targetRot *= Quaternion.Euler(0f, 0f, rollOffset);
-
-        rb.MoveRotation(Quaternion.Slerp(rb.rotation, targetRot, rotationBlend * Time.fixedDeltaTime));
     }
 
     private void OnDrawGizmos()

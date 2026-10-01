@@ -66,7 +66,9 @@ public class WeaponHolster : MonoBehaviour, IUpdatable
             {
                 if (beatPlaying) return;
 
-                if (cachedRb != null) cachedRb.isKinematic = false;
+                // El Rigidbody se queda kinematic mientras el arma esta en la mano (lo bloquea
+                // el Grabbable). Si se vuelve dinamico aqui, las colisiones la empujan y giran
+                // entre frames y los disparos salen desviados.
                 weaponObject.transform.SetParent(null);
                 isStored = false;
 
