@@ -38,7 +38,9 @@ public class NarrativeBeatManager : MonoBehaviour
     [SerializeField] private GameObject beatIndicatorObject;
 
     private int activeBeatCount = 0;
-    public bool IsPlaying => activeBeatCount > 0;
+    private int activeSubtitleCount = 0;
+    // Un beat sigue activo mientras suene el audio o quede texto en pantalla
+    public bool IsPlaying => activeBeatCount > 0 || activeSubtitleCount > 0;
 
     private void Awake()
     {
@@ -51,12 +53,13 @@ public class NarrativeBeatManager : MonoBehaviour
         if (beatIndicatorObject != null)
             beatIndicatorObject.SetActive(false);
 
-        StartCoroutine(PlayBeatDelayed(BeatIndex.GameStart, gameStartDelay));
+        StartCoroutine(PlayBeatThenDissolve(BeatIndex.GameStart, gameStartDelay));
     }
 
     public void OnFirstGrab()
     {
-        firstGrabDissolveEvent?.Trigger();
+        // La sala de simulacion ya se disuelve al terminar el texto de GameStart
+        // (PlayBeatThenDissolve). Si se disparara aqui otra vez, volveria a aparecer.
     }
 
     public void OnRoundStarted(int roundIndex)
@@ -79,11 +82,17 @@ public class NarrativeBeatManager : MonoBehaviour
         }
     }
 
-    private IEnumerator PlayBeatThenDissolve(BeatIndex index)
+    private IEnumerator PlayBeatThenDissolve(BeatIndex index, float delay = 0f)
     {
+        if (delay > 0f)
+            yield return new WaitForSeconds(delay);
+
         PlayBeat(index);
         yield return new WaitWhile(() => IsPlaying);
         firstGrabDissolveEvent?.Trigger();
+
+        if (index == BeatIndex.GameStart)
+            TutorialManager.Instance?.OnIntroFinished();
     }
 
     private void PlayBeat(BeatIndex index)
@@ -103,6 +112,8 @@ public class NarrativeBeatManager : MonoBehaviour
 
     private IEnumerator PlaySubtitles(SubtitleBlock[] subtitles)
     {
+        activeSubtitleCount++;
+
         foreach (SubtitleBlock block in subtitles)
         {
             if (block == null) continue;
@@ -114,6 +125,8 @@ public class NarrativeBeatManager : MonoBehaviour
 
             yield return new WaitForSeconds(block.duration);
         }
+
+        activeSubtitleCount--;
     }
 
     private IEnumerator TrackBeatDuration(float duration)
@@ -126,11 +139,5 @@ public class NarrativeBeatManager : MonoBehaviour
         activeBeatCount--;
         if (activeBeatCount <= 0 && beatIndicatorObject != null)
             beatIndicatorObject.SetActive(false);
-    }
-
-    private IEnumerator PlayBeatDelayed(BeatIndex index, float delay)
-    {
-        yield return new WaitForSeconds(delay);
-        PlayBeat(index);
     }
 }

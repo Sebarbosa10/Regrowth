@@ -25,6 +25,8 @@ public class GunEnergySystem : MonoBehaviour, IUpdatable
 
     public bool IsDepleted => isDepleted;
 
+    public event System.Action OnDepleted;
+
     private void OnEnable()
     {
         if (updateManager != null) updateManager.Register(this);
@@ -44,6 +46,9 @@ public class GunEnergySystem : MonoBehaviour, IUpdatable
     public void Tick(float deltaTime)
     {
         if (!isDepleted) return;
+
+        // Juego en pausa (tutorial): sin deltaTime no se puede medir la agitacion
+        if (deltaTime <= 0f) return;
 
         if (grabbable != null && grabbable.SelectingPointsCount <= 0)
         {
@@ -103,6 +108,7 @@ public class GunEnergySystem : MonoBehaviour, IUpdatable
         colorizer?.SetDepletedMaterial(depletedMaterial);
         if (audioSource != null && depletedSound != null)
             audioSource.PlayOneShot(depletedSound);
+        OnDepleted?.Invoke();
     }
 
     private void Recharge()

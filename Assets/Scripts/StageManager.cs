@@ -108,6 +108,7 @@ public class StageManager : MonoBehaviour
         if (trashRemaining <= 0 && !transitioning && roundStarted)
         {
             roundCleared = true;
+            TutorialManager.Instance?.OnRoundCleared();
             Debug.Log("[StageManager] ¡Basura limpia! Guardá el arma en el holster para continuar.");
         }
     }

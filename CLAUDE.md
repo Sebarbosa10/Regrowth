@@ -18,7 +18,7 @@ Juego VR para **Meta Quest 2**. El jugador escucha un lore sobre un planeta cont
 **Flujo de una partida (SampleScene):**
 1. `NarrativeBeatManager.Start` reproduce el beat `GameStart` (audio + subtítulos).
 2. `StageManager.InitWithDelay` (espera 2 frames) → armas a sus holsters → `LoadRound(0)` (diálogos de la ronda).
-3. El jugador saca un arma del holster → `WeaponHolster.OnWeaponRemoved` → `StageManager` spawnea la basura de la ronda (15 / 30 / 60 objetos, en una caja alrededor de `boxCenter`). En la ronda 0 se dispara además `FirstGrabDissolveEvent` (aparece el `OCEAN` con dissolve).
+3. El jugador saca un arma del holster → `WeaponHolster.OnWeaponRemoved` → `StageManager` spawnea la basura de la ronda (15 / 30 / 60 objetos, en una caja alrededor de `boxCenter`). El cambio sala de simulación ↔ océano ya no depende del agarre: lo dispara `NarrativeBeatManager` al terminar el texto de cada beat de inicio.
 4. Cada basura destruida → `TrashObject.OnDestroy` → `StageManager.OnTrashDestroyed` → HUD.
 5. Basura a 0 + todas las armas guardadas → `TransitionToNextRound`: bloquear armas → beat de fin de ronda → fade out + transición de color del Volume (`PollutionVolumeController`) → destruir restos → siguiente ronda → fade in.
 6. Tras la ronda 3 → `Menu`.
@@ -62,7 +62,7 @@ Assets/
     Prefabs/          Bullet*, Lasersight, TraceBullet (LineRenderer del hitscan)
       TRASH/          GLASS, METAL, ORGANIC, PLASTIC (prefabs de basura + modelos/texturas)
     SeaPlants/        Modelo y materiales de las plantas marinas (los "props")
-    Shaders/          Dissolve.ShaderGraph (+ Dissolve.mat)
+    Shaders/          Dissolve.ShaderGraph (+ Dissolve.mat), SimulationGrid.shader (sala de simulación)
     Terrain/, Vacuum/, Pistol/
     *.mp3             Algunos SFX sueltos aquí (deberían estar en Audio/)
   Audio/              Música, beats narrativos, SFX
@@ -80,12 +80,14 @@ Terceros (no tocar): Houidisoft technology/ (Plasma Shader), IgniteCoders/ (Simp
 | `CustomUpdateManager` | Singleton que llama `Tick(dt)` a los `IUpdatable` registrados (un solo `Update` para todos) |
 | `IUpdatable` | Interfaz `Tick(float deltaTime)` |
 | `StageManager` | Singleton. Rondas (`RoundConfig[]`), spawn de basura en caja, escucha eventos de holsters, transición entre rondas, vuelta al menú |
-| `NarrativeBeatManager` | Singleton. 6 beats (audio + subtítulos) por inicio/fin de ronda; expone `IsPlaying` que bloquea el gameplay |
+| `NarrativeBeatManager` | Singleton. 6 beats (audio + subtítulos) por inicio/fin de ronda; expone `IsPlaying` (audio sonando **o** subtítulos en pantalla) que bloquea el gameplay. Controla la sala de simulación: aparece al empezar un beat de fin de ronda y se disuelve al terminar el texto de `GameStart` / inicio de ronda (`PlayBeatThenDissolve`). `OnFirstGrab` ya no dispara el dissolve |
 | `DialogueManager` | Singleton. Cola de clips de diálogo por ronda |
 | `SubtitleDisplay` | Singleton. Efecto máquina de escribir en un TMP |
 | `FadeController` | Fade a negro con una `Image` (corrutinas `FadeOut`/`FadeIn`) |
 | `PollutionVolumeController` | Interpola ShadowsMidtonesHighlights del Volume por ronda |
 | `FirstGrabDissolveEvent` | Alterna dissolve (MaterialPropertyBlock `_Dissolve` 0↔2) sobre `appearRoots`/`disappearRoots` + fade de audio. Los renderers se cachean en `Awake` y se apagan mientras están disueltos. `toggleRoots` = raíces con material opaco (sin dissolve) que se activan/desactivan con `SetActive` a mitad del efecto. Solo el grupo pequeño de plantas con el shader Dissolve debe ir en `appearRoots` |
+| `SimulationRoom` | Genera por código la sala de simulación (cubo visto desde dentro, 6 caras) y su material en `Awake`, con el shader `Regrowth/SimulationGrid` (rejilla unlit + dissolve por baldosas con `_Dissolve`). Va en `disappearRoots` de `FirstGrabDissolveEvent`: sala durante la voz, océano durante el combate |
+| `TutorialManager` | Singleton. Tutorial integrado en la ronda 1: avisos de texto (agarrar, disparar, cambiar modo, recargar, guardar el arma) en un panel delante del jugador. Cada aviso **pausa el juego con `Time.timeScale = 0`** hasta pulsar el botón de continuar (B por defecto); `IsPaused` bloquea el arma. Se dispara por eventos: `NarrativeBeatManager` (fin del texto inicial), `WeaponHolster.OnWeaponRemoved`, `TrashGun.OnShotFired`, `GunEnergySystem.OnDepleted`, `StageManager` (zona limpia). Sale en todas las partidas |
 | `MainMenu` | Botones Play/Quit del menú |
 
 **Arma**
@@ -166,7 +168,8 @@ Con `Stage 1` presente el juego va a ~30 fps; sin él va bien. Estas son las cau
 - `GunEnergySystem` vibra siempre el `RTouch`, aunque el arma esté en la mano izquierda. `TryShoot` consume el último disparo y devuelve `false` (el disparo 10 no sale).
 - `StageManager.Instance` y `DialogueManager.Instance` sin guard de duplicados; `Instance` estáticos no se limpian en `OnDestroy`.
 - Scripts no usados o legado: `TrashBullet`, prefabs `Bullet*`, `Graphics/Vacuum` (la "vacuum gun" referenciada en `StageManager`).
-- Encoding: varios `.cs` tienen caracteres rotos (`�`, `?????`). Guardar en UTF-8.
+- Encoding: varios `.cs` tienen caracteres rotos (`�`, `?????`). `StageManager.cs` está en Windows-1252, no en UTF-8: editarlo a nivel de bytes (p. ej. `sed -b`) o convertirlo entero a UTF-8 antes, para no corromper los textos.
+- Con el juego en pausa (`Time.timeScale = 0`, tutorial) los `Tick` siguen ejecutándose con `deltaTime = 0`: cualquier lógica nueva por frame debe tolerarlo (no dividir por `deltaTime`).
 - `TempAssembly.dll` y `RuntimeActionBindings.json` en la raíz del repo; texturas y audio duplicados (`Terrain/*.jpg` y `*.png`).
 - El git status muestra `.tif`/`.png` de terceros borrados tras la migración a LFS: comprobar que no falten en el proyecto.
 

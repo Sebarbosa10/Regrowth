@@ -68,6 +68,9 @@ public class TrashGun : MonoBehaviour, IUpdatable
     private OVRInput.Controller activeController = OVRInput.Controller.None;
     private readonly Queue<LineRenderer> tracePool = new Queue<LineRenderer>();
 
+    public event System.Action OnShotFired;
+    public OVRInput.Button ModeSwitchButton => modeSwitchButton;
+
     private void Reset() { grabbable = GetComponent<Grabbable>(); }
 
     private void OnEnable()
@@ -90,6 +93,15 @@ public class TrashGun : MonoBehaviour, IUpdatable
         DetectActiveController();
 
         if (NarrativeBeatManager.Instance != null && NarrativeBeatManager.Instance.IsPlaying) return;
+
+        if (TutorialManager.Instance != null && TutorialManager.Instance.IsPaused)
+        {
+            // Se sigue leyendo el input para que al reanudar no dispare ni cambie de modo
+            // con un boton que ya venia pulsado.
+            triggerWasPressed = IsRightTriggerPressed();
+            switchWasPressed = OVRInput.Get(modeSwitchButton);
+            return;
+        }
 
         HandleModeSwitch();
         HandleFire();
@@ -246,6 +258,7 @@ public class TrashGun : MonoBehaviour, IUpdatable
         Hitscan(muzzle.position, direction);
         VibrateForMode();
         recoil?.ApplyRecoil((int)currentMode);
+        OnShotFired?.Invoke();
     }
 
     private IEnumerator FireBurst()
@@ -257,6 +270,7 @@ public class TrashGun : MonoBehaviour, IUpdatable
             Hitscan(muzzle.position, muzzle.forward);
             VibrateForMode();
             recoil?.ApplyRecoil((int)currentMode);
+            OnShotFired?.Invoke();
             yield return new WaitForSeconds(burstDelay);
         }
         isBursting = false;
@@ -276,6 +290,7 @@ public class TrashGun : MonoBehaviour, IUpdatable
 
         VibrateForMode();
         recoil?.ApplyRecoil((int)currentMode);
+        OnShotFired?.Invoke();
     }
 
     private void Hitscan(Vector3 origin, Vector3 direction)
