@@ -85,7 +85,7 @@ Terceros (no tocar): Houidisoft technology/ (Plasma Shader), IgniteCoders/ (Simp
 | `SubtitleDisplay` | Singleton. Efecto máquina de escribir en un TMP |
 | `FadeController` | Fade a negro con una `Image` (corrutinas `FadeOut`/`FadeIn`) |
 | `PollutionVolumeController` | Interpola ShadowsMidtonesHighlights del Volume por ronda |
-| `FirstGrabDissolveEvent` | Alterna dissolve (MaterialPropertyBlock `_Dissolve` 0↔2) sobre raíces que aparecen/desaparecen + fade de audio. Raíz actual: `OCEAN` |
+| `FirstGrabDissolveEvent` | Alterna dissolve (MaterialPropertyBlock `_Dissolve` 0↔2) sobre `appearRoots`/`disappearRoots` + fade de audio. Los renderers se cachean en `Awake` y se apagan mientras están disueltos. `toggleRoots` = raíces con material opaco (sin dissolve) que se activan/desactivan con `SetActive` a mitad del efecto. Solo el grupo pequeño de plantas con el shader Dissolve debe ir en `appearRoots` |
 | `MainMenu` | Botones Play/Quit del menú |
 
 **Arma**
@@ -181,13 +181,17 @@ Con `Stage 1` presente el juego va a ~30 fps; sin él va bien. Estas son las cau
 - Seguir las convenciones de la sección 6 y actualizar este archivo cuando cambie la arquitectura.
 - Si algo es ambiguo, preguntar.
 
-## 9. Preguntas abiertas
+## 9. Decisiones tomadas (2026-10-01)
 
-1. ¿Los 30 fps están medidos **en el Quest (build)** o en el Editor con Link? ¿Tienes datos de OVR Metrics Tool (GPU %)?
-2. ¿Las plantas necesitan de verdad el dissolve (aparecer al primer agarre) o podría hacerse solo con un grupo pequeño / un efecto distinto y dejar el resto con un material opaco simple?
-3. ¿Qué es exactamente `OCEAN` y qué hay dentro de `Stage 1` aparte de las plantas? ¿Existe un suelo/terreno (`Terrain.fbx`, `New Terrain 1.asset`) en la escena o está sin usar?
-4. ¿Hay alguna luz direccional en tiempo real? No encontré componentes `Light` en la escena (quizás vienen de un prefab). ¿Te importan las sombras de las plantas?
-5. ¿El post-procesado (Bloom/Vignette/tinte por ronda) es imprescindible para la estética o se puede sustituir por niebla/color ambiente?
-6. ¿La "vacuum gun" y `TrashBullet` siguen en uso o se pueden considerar legado?
-7. ¿Qué frecuencia quieres: 72 Hz o 90 Hz?
-8. ¿Se trabaja con otra persona en la escena (para coordinar cambios en `SampleScene.unity`)?
+- Los ~30 fps están medidos **en el Quest 2** con `FPSDisplay` (sin datos de OVR Metrics Tool).
+- **Dissolve**: basta con un grupo pequeño de plantas donde se note; el resto puede usar un material opaco simple.
+- **Sombras de las plantas: no hacen falta.** Se pueden desactivar.
+- **Post-procesado: se mantiene** (es importante para la estética). Solo se puede abaratar, no quitar.
+- Objetivo: **72 fps estables** es suficiente.
+
+## 10. Preguntas abiertas
+
+1. ¿Qué es exactamente `OCEAN` y qué hay dentro de `Stage 1` aparte de las plantas? ¿Existe un suelo/terreno (`Terrain.fbx`, `New Terrain 1.asset`) en la escena o está sin usar?
+2. ¿Hay alguna luz direccional en tiempo real? No encontré componentes `Light` en la escena (quizás vienen de un prefab). ¿Alguna otra sombra importa (arma, basura)?
+3. ¿La "vacuum gun" y `TrashBullet` siguen en uso o se pueden considerar legado?
+4. ¿Se trabaja con otra persona en la escena (para coordinar cambios en `SampleScene.unity`)?
