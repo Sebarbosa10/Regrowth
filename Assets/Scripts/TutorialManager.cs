@@ -44,6 +44,8 @@ public class TutorialManager : MonoBehaviour
     [SerializeField, TextArea(2, 5)] private string storeText =
         "Zona limpia.\nGuarda el arma en la funda para continuar.";
     [SerializeField] private string continueText = "Pulsa {0} para continuar";
+    [Tooltip("Nombres tal como aparecen en el texto, en el orden de los modos del arma. Se pintan del color de cada modo")]
+    [SerializeField] private string[] trashTypeNames = { "plástico", "vidrio", "orgánico", "metal" };
 
     private bool isShowing = false;
     private bool weaponGrabbed = false;
@@ -120,7 +122,24 @@ public class TutorialManager : MonoBehaviour
 
         switchShown = true;
         string button = trashGun != null ? ButtonName(trashGun.ModeSwitchButton) : "A";
-        Show(Step.SwitchMode, string.Format(switchText, button), promptDelay);
+        Show(Step.SwitchMode, ColorizeTrashTypes(string.Format(switchText, button)), promptDelay);
+    }
+
+    // Pinta cada tipo de basura con el color que tiene su modo en el arma
+    private string ColorizeTrashTypes(string text)
+    {
+        GunModeColorizer colorizer = trashGun != null ? trashGun.Colorizer : null;
+        if (colorizer == null || trashTypeNames == null) return text;
+
+        for (int i = 0; i < trashTypeNames.Length; i++)
+        {
+            string typeName = trashTypeNames[i];
+            if (string.IsNullOrEmpty(typeName)) continue;
+
+            string hex = ColorUtility.ToHtmlStringRGB(colorizer.GetModeColor(i));
+            text = text.Replace(typeName, "<color=#" + hex + ">" + typeName + "</color>");
+        }
+        return text;
     }
 
     private void OnEnergyDepleted()

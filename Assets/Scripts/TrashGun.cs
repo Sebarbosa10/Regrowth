@@ -70,6 +70,7 @@ public class TrashGun : MonoBehaviour, IUpdatable
 
     public event System.Action OnShotFired;
     public OVRInput.Button ModeSwitchButton => modeSwitchButton;
+    public GunModeColorizer Colorizer => colorizer;
 
     private void Reset() { grabbable = GetComponent<Grabbable>(); }
 

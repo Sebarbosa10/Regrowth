@@ -62,7 +62,9 @@ Assets/
     Prefabs/          Bullet*, Lasersight, TraceBullet (LineRenderer del hitscan)
       TRASH/          GLASS, METAL, ORGANIC, PLASTIC (prefabs de basura + modelos/texturas)
     SeaPlants/        Modelo y materiales de las plantas marinas (los "props")
-    Shaders/          Dissolve.ShaderGraph (+ Dissolve.mat), SimulationGrid.shader (sala de simulación)
+    Shaders/          Dissolve.ShaderGraph (+ Dissolve.mat), SimulationGrid.shader (sala de simulación),
+                      MenuWater.shader y MenuSky.shader (menú). Los .shader propios son HLSL unlit para URP,
+                      con soporte multiview y sin texturas ni depth/opaque texture
     Terrain/, Vacuum/, Pistol/
     *.mp3             Algunos SFX sueltos aquí (deberían estar en Audio/)
   Audio/              Música, beats narrativos, SFX
@@ -89,6 +91,8 @@ Terceros (no tocar): Houidisoft technology/ (Plasma Shader), IgniteCoders/ (Simp
 | `SimulationRoom` | Genera por código la sala de simulación (cubo visto desde dentro, 6 caras) y su material en `Awake`, con el shader `Regrowth/SimulationGrid` (rejilla unlit + dissolve por baldosas con `_Dissolve`). Va en `disappearRoots` de `FirstGrabDissolveEvent`: sala durante la voz, océano durante el combate |
 | `TutorialManager` | Singleton. Tutorial integrado en la ronda 1: avisos de texto (agarrar, disparar, cambiar modo, recargar, guardar el arma) en un panel delante del jugador. Cada aviso **pausa el juego con `Time.timeScale = 0`** hasta pulsar el botón de continuar (B por defecto); `IsPaused` bloquea el arma. Se dispara por eventos: `NarrativeBeatManager` (fin del texto inicial), `WeaponHolster.OnWeaponRemoved`, `TrashGun.OnShotFired`, `GunEnergySystem.OnDepleted`, `StageManager` (zona limpia). Sale en todas las partidas |
 | `MainMenu` | Botones Play/Quit del menú |
+| `MenuEnvironment` | Escena `Menu`: genera por código el mar nocturno (rejilla, shader `Regrowth/MenuWater`) y el cielo con estrellas y luna (cubo, shader `Regrowth/MenuSky`). El nivel del agua es la altura del objeto. Sustituye al prefab `WaterBlock_50m` de IgniteCoders |
+| `UI/MenuStyler` | Escena `Menu`: va en el Canvas y aplica el estilo al arrancar (fondo y borde del panel, colores de estado de los botones, textos y títulos) sin editar la escena a mano |
 
 **Arma**
 | Script | Qué hace |
@@ -194,9 +198,10 @@ Con `Stage 1` presente el juego va a ~30 fps; sin él va bien. Estas son las cau
 
 ## 10. Pendientes (anotados el 2026-10-01 para la siguiente sesión)
 
-- [ ] **Textos de los botones**: revisar y cambiar el texto de los botones; decidir bien qué hay que poner en cada uno.
+- [x] **Textos de los botones**: cerrado (2026-10-02). Los tipos de basura del aviso de cambio de disparo salen del color de su modo; no hacen falta más cambios.
 - [ ] **Menú de pausa** mejor, con una pantalla de **ajustes que incluya los controles**.
-- [ ] **Texto colgando debajo de la cámara del jugador**: hay un texto que se ve debajo de la cámara; localizarlo y quitarlo o recolocarlo.
+- [ ] **Menú principal**: código hecho el 2026-10-02 (`MenuEnvironment`, `MenuStyler`, shaders de agua y cielo). Falta montarlo en la escena `Menu`, probarlo en el visor y ajustar colores/alturas.
+- [x] **Texto colgando debajo de la cámara del jugador**: arreglado por Sebas (2026-10-02).
 
 ## 11. Preguntas abiertas
 

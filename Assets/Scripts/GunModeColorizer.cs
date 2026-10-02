@@ -56,6 +56,14 @@ public class GunModeColorizer : MonoBehaviour
         return modeMaterials[currentModeIndex].material;
     }
 
+    // Color del material de un modo (0 Plastic, 1 Glass, 2 Organic, 3 Metal)
+    public Color GetModeColor(int modeIndex)
+    {
+        if (modeIndex < 0 || modeIndex >= modeMaterials.Length) return Color.white;
+        Material mat = modeMaterials[modeIndex].material;
+        return mat != null ? mat.color : Color.white;
+    }
+
     private void ApplyMaterial(Material mat)
     {
         if (targetRenderers == null) return;
