@@ -15,8 +15,10 @@ public class GunGrabTransformer : MonoBehaviour, ITransformer
     [SerializeField] private Transform trackingSpace;
 
     [Header("Pose en la mano")]
-    [Tooltip("Giro del arma respecto al mando. X inclina el canon arriba/abajo. En 0 apunta igual que el mando")]
-    [SerializeField] private Vector3 gripRotationOffset = Vector3.zero;
+    [Tooltip("Giro del arma respecto al mando. X positivo baja el canon. Con ~35 el arma queda recta sujetando el mando de forma natural (en 0 apunta como el laser del mando y obliga a doblar la muneca)")]
+    [SerializeField] private Vector3 gripRotationOffset = new Vector3(DefaultGripPitch, 0f, 0f);
+
+    public const float DefaultGripPitch = 35f;
     [Tooltip("Desplazamiento del punto de agarre respecto al mando, en metros (ejes del mando)")]
     [SerializeField] private Vector3 gripPositionOffset = Vector3.zero;
     [Tooltip("Tiempo que tarda el arma en acomodarse en la mano al agarrarla")]
