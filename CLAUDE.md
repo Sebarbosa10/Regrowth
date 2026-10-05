@@ -92,7 +92,9 @@ Terceros (no tocar): Houidisoft technology/ (Plasma Shader), IgniteCoders/ (Simp
 | `TutorialManager` | Singleton. Tutorial integrado en la ronda 1: avisos de texto (agarrar, disparar, cambiar modo, recargar, guardar el arma) en un panel delante del jugador. Cada aviso **pausa el juego con `Time.timeScale = 0`** hasta pulsar el botón de continuar (B por defecto); `IsPaused` bloquea el arma. Se dispara por eventos: `NarrativeBeatManager` (fin del texto inicial), `WeaponHolster.OnWeaponRemoved`, `TrashGun.OnShotFired`, `GunEnergySystem.OnDepleted`, `StageManager` (zona limpia). Sale en todas las partidas |
 | `MainMenu` | Botones Play/Quit del menú |
 | `MenuEnvironment` | Escena `Menu`: genera por código el mar nocturno (rejilla, shader `Regrowth/MenuWater`) y el cielo con estrellas y luna (cubo, shader `Regrowth/MenuSky`). El nivel del agua es la altura del objeto. Sustituye al prefab `WaterBlock_50m` de IgniteCoders |
-| `UI/MenuStyler` | Escena `Menu`: va en el Canvas y aplica el estilo al arrancar (fondo y borde del panel, colores de estado de los botones, textos y títulos) sin editar la escena a mano |
+| `UI/MenuStyler` | Escena `Menu`: va en el Canvas y **construye el menú al arrancar** según el diseño de Claude Design (https://claude.ai/artifact/6BXZBbpMfWM1R8HBQ39J9N): panel 520×560 px de diseño con rejilla, marco y esquinas en "L", barras de colores de modo, botones JUGAR / CONTROLES / SALIR y pantalla de controles con VOLVER. Oculta el contenido antiguo y reutiliza la interacción de rayo/poke del Canvas. Estilo del título con glow (underlay de TMP) |
+| `Editor/MenuSceneLayout` | Herramienta de editor (menú **Regrowth › Colocar escena Menu**): coloca la escena `Menu` para VR con Undo. Rig en el origen sin inclinación; panel a 1,8 m, centro a 1,25 m, 0,9 m de ancho, inclinado 10°; título centrado a 12 m sobre el horizonte; mar a -1 m; desactiva `WaterBlock_50m`. Es la forma preferida de cambiar escenas en bloque en vez de editar el `.unity` a mano |
+| `UI/MenuButtonVisual` | Estados normal / hover / pulsado de los botones del menú (relleno, borde, grosor de borde y color de texto) vía eventos de puntero |
 
 **Arma**
 | Script | Qué hace |
@@ -174,6 +176,7 @@ Con `Stage 1` presente el juego va a ~30 fps; sin él va bien. Estas son las cau
 - Scripts no usados o legado: `TrashBullet`, prefabs `Bullet*`, `Graphics/Vacuum` (la "vacuum gun" referenciada en `StageManager`).
 - Encoding: varios `.cs` tienen caracteres rotos (`�`, `?????`). `StageManager.cs` está en Windows-1252, no en UTF-8: editarlo a nivel de bytes (p. ej. `sed -b`) o convertirlo entero a UTF-8 antes, para no corromper los textos.
 - Con el juego en pausa (`Time.timeScale = 0`, tutorial) los `Tick` siguen ejecutándose con `deltaTime = 0`: cualquier lógica nueva por frame debe tolerarlo (no dividir por `deltaTime`).
+- La fuente `Graphics/ScienceGothic… SDF.asset` es estática con solo 99 caracteres (ASCII): sin tildes ni ñ. TMP las dibuja con la fuente de respaldo o como cuadrados hasta regenerar el atlas con Latin-1.
 - `TempAssembly.dll` y `RuntimeActionBindings.json` en la raíz del repo; texturas y audio duplicados (`Terrain/*.jpg` y `*.png`).
 - El git status muestra `.tif`/`.png` de terceros borrados tras la migración a LFS: comprobar que no falten en el proyecto.
 
