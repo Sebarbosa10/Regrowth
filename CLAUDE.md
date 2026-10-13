@@ -89,7 +89,7 @@ Terceros (no tocar): Houidisoft technology/ (Plasma Shader), IgniteCoders/ (Simp
 | `PollutionVolumeController` | Interpola ShadowsMidtonesHighlights del Volume por ronda |
 | `FirstGrabDissolveEvent` | Alterna dissolve (MaterialPropertyBlock `_Dissolve` 0↔2) sobre `appearRoots`/`disappearRoots` + fade de audio. Los renderers se cachean en `Awake` y se apagan mientras están disueltos. `toggleRoots` = raíces con material opaco (sin dissolve) que se activan/desactivan con `SetActive` a mitad del efecto. Solo el grupo pequeño de plantas con el shader Dissolve debe ir en `appearRoots` |
 | `SimulationRoom` | Genera por código la sala de simulación (cubo visto desde dentro, 6 caras) y su material en `Awake`, con el shader `Regrowth/SimulationGrid` (rejilla unlit + dissolve por baldosas con `_Dissolve`). Va en `disappearRoots` de `FirstGrabDissolveEvent`: sala durante la voz, océano durante el combate |
-| `TutorialManager` | Singleton. Tutorial integrado en la ronda 1: avisos de texto (agarrar, disparar, cambiar modo, recargar, guardar el arma) en un panel delante del jugador. Cada aviso **pausa el juego con `Time.timeScale = 0`** hasta pulsar el botón de continuar (B por defecto); `IsPaused` bloquea el arma. Se dispara por eventos: `NarrativeBeatManager` (fin del texto inicial), `WeaponHolster.OnWeaponRemoved`, `TrashGun.OnShotFired`, `GunEnergySystem.OnDepleted`, `StageManager` (zona limpia). Sale en todas las partidas |
+| `TutorialManager` | Singleton. Tutorial integrado en la ronda 1: avisos de texto (agarrar, disparar, cambiar modo, recargar, guardar el arma) en un panel delante del jugador. Cada aviso **pausa el juego con `Time.timeScale = 0`** hasta pulsar el botón de continuar (B por defecto); `IsPaused` bloquea el arma. Se dispara por eventos: `NarrativeBeatManager` (fin del texto inicial), `WeaponHolster.OnWeaponRemoved`, `TrashGun.OnShotFired`, `GunEnergySystem.OnDepleted`, `StageManager` (zona limpia). Sale en todas las partidas. El panel (`FadeCanvas (2)`) aparece **delante de los ojos** del jugador (`placeInFrontOfHead` activado; decidido por Sebas el 2026-10-13 tras probar la posición fija). Si `head` no es una cámara, en `Start` se usa `OVRCameraRig.centerEyeAnchor` |
 | `MainMenu` | Botones Play/Quit del menú |
 | `MenuEnvironment` | Escena `Menu`: genera por código el mar nocturno (rejilla, shader `Regrowth/MenuWater`) y pone el cielo con estrellas y luna (shader `Regrowth/MenuSky`) como **skybox de la escena** en runtime (`RenderSettings.skybox`; un cubo sin escritura de profundidad quedaba tapado por el skybox por defecto). El nivel del agua es la altura del objeto. Sustituye al prefab `WaterBlock_50m` de IgniteCoders |
 | `UI/MenuStyler` | Escena `Menu`: va en el Canvas y **construye el menú al arrancar** según el diseño de Claude Design (https://claude.ai/artifact/6BXZBbpMfWM1R8HBQ39J9N): panel 520×560 px de diseño con rejilla, marco y esquinas en "L", barras de colores de modo, botones JUGAR / CONTROLES / SALIR y pantalla de controles con VOLVER. Oculta el contenido antiguo y reutiliza la interacción de rayo/poke del Canvas. Estilo del título con glow (underlay de TMP) |
@@ -116,6 +116,9 @@ Terceros (no tocar): Houidisoft technology/ (Plasma Shader), IgniteCoders/ (Simp
 | `TrashFloat` | Flotación/deriva/rotación, parámetros por ronda (IUpdatable) |
 | `TrashDissolveSpawner` | Dissolve de aparición y colliders desactivados mientras tanto |
 | `TrashBullet` | Proyectil físico por tag. **Parece legado**: `TrashGun` usa hitscan |
+| `TrashGlow` | Halo aditivo detrás de cada basura del color de su material (`_Color`, el mismo que el modo que la destruye). Quad hijo con shader billboard `Regrowth/TrashGlow`, creado en `Start` (después del `Awake` de `TrashDissolveSpawner`, para no recibir su MPB). Materiales compartidos por color |
+
+**Herramientas de optimización (Editor)**: `Editor/TrashGlowSetup` (menú *Regrowth › Añadir glow a la basura*: añade `TrashGlow` a los prefabs de `Graphics/Prefabs/TRASH`) y `Editor/OceanPlantsSetup` (menú *Regrowth › Optimizar plantas del océano*: las 12 plantas más cercanas al jugador van a `OCEAN/DissolvePlants` con el material Dissolve; el resto a `OCEAN/StaticPlants` con el material opaco `… 1`; configura `appearRoots`/`toggleRoots` del `DissolveEvent`).
 
 **UI / debug**: `RoundHUDDisplay` (singleton, total/destruidas), `FPSDisplay`, `ControlsMenuToggle`, `NoiseScaleAnimator` (anima `_Noise_Scale` con MPB).
 
@@ -139,7 +142,9 @@ Terceros (no tocar): Houidisoft technology/ (Plasma Shader), IgniteCoders/ (Simp
 
 ### 7.1 Rendimiento — el problema de los props (prioridad máxima)
 
-Con `Stage 1` presente el juego va a ~30 fps; sin él va bien. Estas son las causas probables, ordenadas por impacto estimado:
+Con `Stage 1` presente el juego va a ~30 fps; sin él va bien. Estas son las causas probables, ordenadas por impacto estimado.
+
+> **Estado (2026-10-13):** SSAO quitado, soft shadows quitadas, far clip 20 m → 72 fps en general. Pero al mirar al suelo bajaban los fps: `appearRoots` seguía siendo `OCEAN` entero y 72 de 115 plantas seguían con el shader Dissolve. Se resuelve con *Regrowth › Optimizar plantas del océano* (12 con dissolve, el resto opacas y fuera del MPB).
 
 1. **Las 115 plantas usan `Dissolve.ShaderGraph`** (`SeaPlants_MAT` y `BigSeaPlants_MAT`), que es:
    - **URP Lit** completo (PBR, specular, environment reflections).

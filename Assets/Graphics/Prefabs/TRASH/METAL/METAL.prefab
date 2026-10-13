@@ -15,6 +15,7 @@ GameObject:
   - component: {fileID: 7476244784408095112}
   - component: {fileID: 5005049320376992902}
   - component: {fileID: 5658440058806565693}
+  - component: {fileID: 1907936401568857629}
   m_Layer: 8
   m_Name: METAL
   m_TagString: Metal
@@ -188,3 +189,19 @@ MonoBehaviour:
   disableColliderDuringDissolve: 1
   dissolveSound: {fileID: 8300000, guid: ac4313103c956b74cb5b0308b7d52663, type: 3}
   dissolveSoundVolume: 0.4
+--- !u!114 &1907936401568857629
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8757595716442820277}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f7ed05a4890bd0f439d143f969e5bde2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  glowShader: {fileID: 4800000, guid: 3f2f307d927906a478f2e57933b49a27, type: 3}
+  sizeMultiplier: 1.6
+  intensity: 0.45
+  fadeInTime: 1

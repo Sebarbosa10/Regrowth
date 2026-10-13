@@ -15,6 +15,7 @@ GameObject:
   - component: {fileID: -8326709827797880047}
   - component: {fileID: 1593308570642733219}
   - component: {fileID: 2981615929605803559}
+  - component: {fileID: 6605506652182690505}
   m_Layer: 8
   m_Name: ORGANIC
   m_TagString: Organic
@@ -188,3 +189,19 @@ MonoBehaviour:
   disableColliderDuringDissolve: 1
   dissolveSound: {fileID: 8300000, guid: ac4313103c956b74cb5b0308b7d52663, type: 3}
   dissolveSoundVolume: 0.4
+--- !u!114 &6605506652182690505
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1364673747052621541}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f7ed05a4890bd0f439d143f969e5bde2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  glowShader: {fileID: 4800000, guid: 3f2f307d927906a478f2e57933b49a27, type: 3}
+  sizeMultiplier: 1.6
+  intensity: 0.45
+  fadeInTime: 1

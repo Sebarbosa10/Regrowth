@@ -13,13 +13,15 @@ public class TutorialManager : MonoBehaviour
     [Header("Referencias")]
     [SerializeField] private GameObject panelRoot;
     [SerializeField] private TextMeshProUGUI promptText;
-    [Tooltip("Cabeza del jugador (CenterEyeAnchor). El panel aparece delante de ella")]
+    [Tooltip("Cabeza del jugador: CenterEyeAnchor (dentro de TrackingSpace). No la raiz del Camera Rig, que esta en el suelo")]
     [SerializeField] private Transform head;
     [SerializeField] private TrashGun trashGun;
     [SerializeField] private GunEnergySystem energySystem;
     [SerializeField] private WeaponHolster[] holsters;
 
     [Header("Panel")]
+    [Tooltip("Activado: el panel aparece delante de Head (CenterEyeAnchor). Desactivado: se queda donde esta colocado en la escena")]
+    [SerializeField] private bool placeInFrontOfHead = true;
     [SerializeField] private float panelDistance = 1.2f;
     [SerializeField] private float panelHeightOffset = -0.1f;
     [SerializeField] private OVRInput.Button continueButton = OVRInput.Button.Two;
@@ -65,6 +67,14 @@ public class TutorialManager : MonoBehaviour
 
     private void Start()
     {
+        // Head tiene que ser la camara de los ojos. Si apunta a otra cosa (p. ej. la raiz del rig,
+        // que esta en el suelo) se busca CenterEyeAnchor una sola vez al arrancar.
+        if (head == null || head.GetComponent<Camera>() == null)
+        {
+            OVRCameraRig rig = FindObjectOfType<OVRCameraRig>();
+            if (rig != null && rig.centerEyeAnchor != null) head = rig.centerEyeAnchor;
+        }
+
         foreach (WeaponHolster holster in holsters)
         {
             if (holster != null) holster.OnWeaponRemoved += OnWeaponRemoved;
@@ -196,7 +206,7 @@ public class TutorialManager : MonoBehaviour
 
     private void PlacePanelInFrontOfHead()
     {
-        if (head == null) return;
+        if (!placeInFrontOfHead || head == null) return;
 
         Vector3 forward = head.forward;
         forward.y = 0f;

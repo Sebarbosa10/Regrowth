@@ -15,6 +15,7 @@ GameObject:
   - component: {fileID: 611284408172772422}
   - component: {fileID: 4642935316900883965}
   - component: {fileID: 3425875527241092787}
+  - component: {fileID: 1230505657485722695}
   m_Layer: 8
   m_Name: GLASS
   m_TagString: Glass
@@ -188,3 +189,19 @@ MonoBehaviour:
   disableColliderDuringDissolve: 1
   dissolveSound: {fileID: 8300000, guid: ac4313103c956b74cb5b0308b7d52663, type: 3}
   dissolveSoundVolume: 0.4
+--- !u!114 &1230505657485722695
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 44633058617286822}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f7ed05a4890bd0f439d143f969e5bde2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  glowShader: {fileID: 4800000, guid: 3f2f307d927906a478f2e57933b49a27, type: 3}
+  sizeMultiplier: 1.6
+  intensity: 0.45
+  fadeInTime: 1
