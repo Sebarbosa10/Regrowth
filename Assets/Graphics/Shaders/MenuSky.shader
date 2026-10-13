@@ -1,5 +1,6 @@
 // Cielo nocturno del menu principal: degradado, estrellas y luna, todo procedural.
-// Se dibuja sobre un cubo alrededor del jugador, antes que todo lo demas y sin escribir profundidad.
+// Se usa como skybox de la escena (RenderSettings.skybox): Unity lo dibuja detras de todo,
+// centrado en la camara, y la posicion del vertice es directamente la direccion de la vista.
 Shader "Regrowth/MenuSky"
 {
     Properties
@@ -22,6 +23,7 @@ Shader "Regrowth/MenuSky"
             "RenderPipeline" = "UniversalPipeline"
             "RenderType" = "Background"
             "Queue" = "Background"
+            "PreviewType" = "Skybox"
             "IgnoreProjector" = "True"
         }
 

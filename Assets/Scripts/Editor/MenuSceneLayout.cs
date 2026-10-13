@@ -173,8 +173,6 @@ public static class MenuSceneLayout
         environment.transform.SetPositionAndRotation(new Vector3(0f, WaterLevel, 0f), Quaternion.identity);
 
         var serialized = new SerializedObject(environment);
-        // Centro del cielo a la altura de los ojos
-        serialized.FindProperty("skyCenterHeight").floatValue = EyeHeight - WaterLevel;
         // Luna arriba a la derecha, como en el diseno, para que no tape el titulo
         serialized.FindProperty("moonDirection").vector3Value = new Vector3(0.55f, 0.45f, 1f);
 

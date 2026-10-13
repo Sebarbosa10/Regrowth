@@ -19,12 +19,13 @@ public class SubtitleDisplay : MonoBehaviour
         subtitleText.gameObject.SetActive(false);
     }
 
-    public void Show(string text, float duration)
+    // typingSpeed multiplica la velocidad de escritura (para acompanar audio acelerado)
+    public void Show(string text, float duration, float typingSpeed = 1f)
     {
         if (string.IsNullOrEmpty(text)) return;
 
         if (activeCoroutine != null) StopCoroutine(activeCoroutine);
-        activeCoroutine = StartCoroutine(TypeAndHide(text, duration));
+        activeCoroutine = StartCoroutine(TypeAndHide(text, duration, Mathf.Max(typingSpeed, 0.01f)));
     }
 
     public void Hide()
@@ -34,12 +35,12 @@ public class SubtitleDisplay : MonoBehaviour
         subtitleText.text = string.Empty;
     }
 
-    private IEnumerator TypeAndHide(string text, float duration)
+    private IEnumerator TypeAndHide(string text, float duration, float typingSpeed)
     {
         subtitleText.text = string.Empty;
         subtitleText.gameObject.SetActive(true);
 
-        float delay = 1f / charsPerSecond;
+        float delay = 1f / (charsPerSecond * typingSpeed);
         for (int i = 0; i < text.Length; i++)
         {
             subtitleText.text = text.Substring(0, i + 1);

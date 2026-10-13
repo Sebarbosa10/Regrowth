@@ -1,8 +1,8 @@
 using UnityEngine;
 using UnityEngine.Rendering;
 
-// Entorno del menu principal: genera por codigo el mar (malla en rejilla) y el cielo (cubo)
-// con los shaders Regrowth/MenuWater y Regrowth/MenuSky. El nivel del agua es la altura de este objeto.
+// Entorno del menu principal: genera por codigo el mar (malla en rejilla, Regrowth/MenuWater) y pone
+// el cielo nocturno (Regrowth/MenuSky) como skybox de la escena. El nivel del agua es la altura de este objeto.
 public class MenuEnvironment : MonoBehaviour
 {
     [Header("Shaders")]
@@ -21,10 +21,6 @@ public class MenuEnvironment : MonoBehaviour
     [SerializeField] private float waveSpeed = 0.6f;
 
     [Header("Cielo")]
-    [Tooltip("Altura del centro del cielo sobre el agua (altura de los ojos del jugador)")]
-    [SerializeField] private float skyCenterHeight = 3f;
-    [Tooltip("Mitad del lado del cubo del cielo. Sus esquinas deben quedar dentro del far clip")]
-    [SerializeField] private float skyHalfSize = 20f;
     [SerializeField] private Color zenithColor = new Color(0.005f, 0.01f, 0.03f, 1f);
     [Tooltip("Color compartido: horizonte del cielo y agua a lo lejos, para que no se vea el corte")]
     [SerializeField] private Color horizonColor = new Color(0.05f, 0.10f, 0.21f, 1f);
@@ -45,9 +41,9 @@ public class MenuEnvironment : MonoBehaviour
     private static readonly int MoonDirID = Shader.PropertyToID("_MoonDir");
 
     private Mesh waterMesh;
-    private Mesh skyMesh;
     private Material waterMaterial;
     private Material skyMaterial;
+    private Material previousSkybox;
 
     private void Reset()
     {
@@ -82,16 +78,18 @@ public class MenuEnvironment : MonoBehaviour
         skyMaterial.SetVector(MoonDirID, moonDir);
 
         waterMesh = BuildWaterMesh();
-        skyMesh = BuildSkyMesh();
-
         CreateChild("MenuWater", Vector3.zero, waterMesh, waterMaterial);
-        CreateChild("MenuSky", new Vector3(0f, skyCenterHeight, 0f), skyMesh, skyMaterial);
+
+        // El cielo sustituye al skybox por defecto de la escena (el de "atardecer")
+        previousSkybox = RenderSettings.skybox;
+        RenderSettings.skybox = skyMaterial;
     }
 
     private void OnDestroy()
     {
+        if (RenderSettings.skybox == skyMaterial) RenderSettings.skybox = previousSkybox;
+
         if (waterMesh != null) Destroy(waterMesh);
-        if (skyMesh != null) Destroy(skyMesh);
         if (waterMaterial != null) Destroy(waterMaterial);
         if (skyMaterial != null) Destroy(skyMaterial);
     }
@@ -147,33 +145,6 @@ public class MenuEnvironment : MonoBehaviour
         mesh.triangles = triangles;
         // Margen vertical para que las olas (movidas en el shader) no hagan que se descarte la malla
         mesh.bounds = new Bounds(Vector3.zero, new Vector3(waterSize, 4f, waterSize));
-        return mesh;
-    }
-
-    private Mesh BuildSkyMesh()
-    {
-        float s = skyHalfSize;
-        var vertices = new Vector3[]
-        {
-            new Vector3(-s, -s, -s), new Vector3(s, -s, -s), new Vector3(s, s, -s), new Vector3(-s, s, -s),
-            new Vector3(-s, -s, s), new Vector3(s, -s, s), new Vector3(s, s, s), new Vector3(-s, s, s),
-        };
-
-        // El shader no hace culling, asi que el sentido de los triangulos da igual
-        var triangles = new int[]
-        {
-            0, 2, 1, 0, 3, 2,
-            4, 5, 6, 4, 6, 7,
-            0, 1, 5, 0, 5, 4,
-            3, 6, 2, 3, 7, 6,
-            0, 4, 7, 0, 7, 3,
-            1, 2, 6, 1, 6, 5,
-        };
-
-        var mesh = new Mesh { name = "MenuSky" };
-        mesh.vertices = vertices;
-        mesh.triangles = triangles;
-        mesh.RecalculateBounds();
         return mesh;
     }
 

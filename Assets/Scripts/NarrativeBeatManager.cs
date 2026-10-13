@@ -36,6 +36,8 @@ public class NarrativeBeatManager : MonoBehaviour
     [SerializeField] private float gameStartDelay = 0.5f;
     [SerializeField] private FirstGrabDissolveEvent firstGrabDissolveEvent;
     [SerializeField] private GameObject beatIndicatorObject;
+    [Tooltip("Velocidad de los beats: acelera el audio y acorta los tiempos de los subtitulos con el mismo factor para que sigan sincronizados. Por encima de ~1.15 la voz se nota mas aguda")]
+    [SerializeField, Range(0.5f, 2f)] private float narrationSpeed = 1.15f;
 
     private int activeBeatCount = 0;
     private int activeSubtitleCount = 0;
@@ -103,8 +105,10 @@ public class NarrativeBeatManager : MonoBehaviour
         Beat beat = beats[i];
         if (beat == null || beat.clip == null || audioSource == null) return;
 
+        // pitch acelera la reproduccion (y sube el tono); la duracion real es clip.length / velocidad
+        audioSource.pitch = narrationSpeed;
         audioSource.PlayOneShot(beat.clip);
-        StartCoroutine(TrackBeatDuration(beat.clip.length));
+        StartCoroutine(TrackBeatDuration(beat.clip.length / narrationSpeed));
 
         if (beat.subtitles != null && beat.subtitles.Length > 0)
             StartCoroutine(PlaySubtitles(beat.subtitles));
@@ -118,12 +122,14 @@ public class NarrativeBeatManager : MonoBehaviour
         {
             if (block == null) continue;
 
+            // Los tiempos del Inspector estan pensados para el audio a velocidad normal
             if (block.delay > 0f)
-                yield return new WaitForSeconds(block.delay);
+                yield return new WaitForSeconds(block.delay / narrationSpeed);
 
-            SubtitleDisplay.Instance?.Show(block.text, block.duration);
+            float duration = block.duration / narrationSpeed;
+            SubtitleDisplay.Instance?.Show(block.text, duration, narrationSpeed);
 
-            yield return new WaitForSeconds(block.duration);
+            yield return new WaitForSeconds(duration);
         }
 
         activeSubtitleCount--;
