@@ -9,8 +9,13 @@ public class TrashDissolveSpawner : MonoBehaviour
     [SerializeField] private bool disableColliderDuringDissolve = true;
     [SerializeField] private AudioClip dissolveSound;
     [SerializeField] private float dissolveSoundVolume = 1f;
+    [Tooltip("Material opaco barato que sustituye al del dissolve cuando la basura termina de aparecer (lo crea Regrowth > Optimizar prefabs de basura)")]
+    [SerializeField] private Material opaqueMaterial;
+    [Tooltip("Separacion minima entre sonidos de aparicion: al spawnear muchas basuras a la vez solo suenan algunas")]
+    [SerializeField] private float minSoundInterval = 0.15f;
 
     private static readonly int DissolveID = Shader.PropertyToID("_Dissolve");
+    private static float lastSoundTime = -999f;
     private Renderer[] renderers;
     private MaterialPropertyBlock propBlock;
     private Collider[] colliders;
@@ -31,8 +36,12 @@ public class TrashDissolveSpawner : MonoBehaviour
 
     private IEnumerator DissolveIn()
     {
-        if (dissolveSound != null)
+        // En la ronda 3 aparecen 60 a la vez: sin limite serian 60 voces en el mismo frame
+        if (dissolveSound != null && Time.time - lastSoundTime >= minSoundInterval)
+        {
+            lastSoundTime = Time.time;
             AudioSource.PlayClipAtPoint(dissolveSound, transform.position, dissolveSoundVolume);
+        }
 
         float t = 0f;
         while (t < dissolveDuration)
@@ -44,8 +53,36 @@ public class TrashDissolveSpawner : MonoBehaviour
 
         SetDissolve(0f);
 
+        // El shader Dissolve (Lit + alpha clip + doble cara + ruido) solo hace falta mientras aparece
+        if (opaqueMaterial != null)
+        {
+            foreach (Renderer r in renderers)
+            {
+                if (r == null) continue;
+                r.SetPropertyBlock(null);
+                r.sharedMaterial = opaqueMaterial;
+            }
+        }
+        else
+        {
+            ClearDissolveBlock();
+        }
+
         if (disableColliderDuringDissolve)
             SetCollidersEnabled(true);
+    }
+
+    // Un renderer con MaterialPropertyBlock queda fuera del SRP Batcher. Al terminar de aparecer se quita,
+    // salvo que el material no este visible por defecto (_Dissolve distinto de 0), porque entonces desapareceria.
+    private void ClearDissolveBlock()
+    {
+        foreach (Renderer r in renderers)
+        {
+            if (r == null) continue;
+            Material material = r.sharedMaterial;
+            if (material != null && material.HasProperty(DissolveID) && material.GetFloat(DissolveID) > 0.001f) continue;
+            r.SetPropertyBlock(null);
+        }
     }
 
     private void SetDissolve(float value)

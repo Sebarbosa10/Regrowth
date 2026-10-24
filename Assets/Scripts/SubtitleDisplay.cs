@@ -11,6 +11,8 @@ public class SubtitleDisplay : MonoBehaviour
 
     private Coroutine activeCoroutine;
 
+    public TMP_Text Text => subtitleText;
+
     private void Awake()
     {
         if (Instance != null && Instance != this) { Destroy(gameObject); return; }

@@ -18,7 +18,7 @@ Juego VR para **Meta Quest 2**. El jugador escucha un lore sobre un planeta cont
 **Flujo de una partida (SampleScene):**
 1. `NarrativeBeatManager.Start` reproduce el beat `GameStart` (audio + subtítulos).
 2. `StageManager.InitWithDelay` (espera 2 frames) → armas a sus holsters → `LoadRound(0)` (diálogos de la ronda).
-3. El jugador saca un arma del holster → `WeaponHolster.OnWeaponRemoved` → `StageManager` spawnea la basura de la ronda (15 / 30 / 60 objetos, en una caja alrededor de `boxCenter`). El cambio sala de simulación ↔ océano ya no depende del agarre: lo dispara `NarrativeBeatManager` al terminar el texto de cada beat de inicio.
+3. El jugador saca un arma del holster → `WeaponHolster.OnWeaponRemoved` → `StageManager` spawnea la basura de la ronda (15 / 30 / 52 objetos; la ronda 3 bajó de 60 a 52 el 2026-10-24 por rendimiento, en una caja alrededor de `boxCenter`). El cambio sala de simulación ↔ océano ya no depende del agarre: lo dispara `NarrativeBeatManager` al terminar el texto de cada beat de inicio.
 4. Cada basura destruida → `TrashObject.OnDestroy` → `StageManager.OnTrashDestroyed` → HUD.
 5. Basura a 0 + todas las armas guardadas → `TransitionToNextRound`: bloquear armas → beat de fin de ronda → fade out + transición de color del Volume (`PollutionVolumeController`) → destruir restos → siguiente ronda → fade in.
 6. Tras la ronda 3 → `Menu`.
@@ -45,6 +45,7 @@ Un `Volume` local (no global) con `Scenes/SampleScene/Box Volume Profile.asset`:
   - Gatillo derecho (`PrimaryIndexTrigger`, RTouch) → disparar (umbral 0,7).
   - Botón A (`Button.One`) → cambiar modo de disparo.
   - Botón X (`Button.Three`) → mostrar/ocultar menú de controles.
+  - Joystick de cualquier mando, durante la narración → derecha/izquierda salta bloques; mantener derecha salta el beat.
   - Agitar el arma cuando no tiene energía → recarga.
   - Agarre de dos manos: `TwoHandedGunGrip` compara la posición del mando (en tracking space) con dos anclas del arma.
 - **Locomoción**: no hay; el jugador está quieto (room-scale).
@@ -82,7 +83,8 @@ Terceros (no tocar): Houidisoft technology/ (Plasma Shader), IgniteCoders/ (Simp
 | `CustomUpdateManager` | Singleton que llama `Tick(dt)` a los `IUpdatable` registrados (un solo `Update` para todos) |
 | `IUpdatable` | Interfaz `Tick(float deltaTime)` |
 | `StageManager` | Singleton. Rondas (`RoundConfig[]`), spawn de basura en caja, escucha eventos de holsters, transición entre rondas, vuelta al menú |
-| `NarrativeBeatManager` | Singleton. 6 beats (audio + subtítulos) por inicio/fin de ronda; expone `IsPlaying` (audio sonando **o** subtítulos en pantalla) que bloquea el gameplay. Controla la sala de simulación: aparece al empezar un beat de fin de ronda y se disuelve al terminar el texto de `GameStart` / inicio de ronda (`PlayBeatThenDissolve`). `OnFirstGrab` ya no dispara el dissolve. `narrationSpeed` (1,15 por defecto) acelera los beats: sube el `pitch` de su AudioSource (exclusiva) y divide por el mismo factor los `delay`/`duration` de los subtítulos y la velocidad de escritura, así que los tiempos del Inspector se siguen escribiendo para velocidad normal |
+| `NarrativeBeatManager` | Singleton. 6 beats (audio + subtítulos) por inicio/fin de ronda; expone `IsPlaying` (audio sonando **o** subtítulos en pantalla) que bloquea el gameplay. Controla la sala de simulación: aparece al empezar un beat de fin de ronda y se disuelve al terminar el texto de `GameStart` / inicio de ronda (`PlayBeatThenDissolve`). `OnFirstGrab` ya no dispara el dissolve. `narrationSpeed` (1,15 por defecto) acelera los beats: sube el `pitch` de su AudioSource (exclusiva) y divide por el mismo factor los `delay`/`duration` de los subtítulos y la velocidad de escritura, así que los tiempos del Inspector se siguen escribiendo para velocidad normal. Cada beat corre en una sola corrutina (`RunBeat`) que reproduce el clip con `audioSource.clip` + `Play()` (no `PlayOneShot`, para poder hacer `seek`) y mide el tiempo en segundos del clip. **Saltar con el joystick de cualquier mando**: derecha = siguiente bloque (audio y texto saltan juntos), izquierda = bloque anterior, mantener derecha `holdToSkipBeatTime` (1 s) = saltar el beat. El salto del audio usa los `delay`/`duration` del Inspector: si no cuadran con la voz, avisa en consola |
+| `UI/BeatSkipHint` | Indicador sin texto bajo los subtítulos durante los beats: joystick animado izquierda/derecha y aro cian que se llena al mantener. Lo crea `NarrativeBeatManager` junto al texto de `SubtitleDisplay`, en **posición fija** centrada bajo el subtítulo más alto de todos los beats (calculado al arrancar, teniendo en cuenta los márgenes negativos del TMP; `hintSize` 2,2 y `hintGap` 0,35 en tamaños de letra); sprites generados por código |
 | `DialogueManager` | Singleton. Cola de clips de diálogo por ronda |
 | `SubtitleDisplay` | Singleton. Efecto máquina de escribir en un TMP |
 | `FadeController` | Fade a negro con una `Image` (corrutinas `FadeOut`/`FadeIn`) |
@@ -114,11 +116,11 @@ Terceros (no tocar): Houidisoft technology/ (Plasma Shader), IgniteCoders/ (Simp
 |---|---|
 | `TrashObject` | Avisa a `StageManager` en `OnDestroy` |
 | `TrashFloat` | Flotación/deriva/rotación, parámetros por ronda (IUpdatable) |
-| `TrashDissolveSpawner` | Dissolve de aparición y colliders desactivados mientras tanto |
+| `TrashDissolveSpawner` | Dissolve de aparición y colliders desactivados mientras tanto. Al terminar cambia al `opaqueMaterial` (copia URP/Lit opaca en `Graphics/Materials/TrashOpaque`, creada por la herramienta) y quita el MaterialPropertyBlock, así vuelve al SRP Batcher y deja de pagar el shader Dissolve. Sin `opaqueMaterial` solo quita el MPB (los `Emissive*` tienen `_Dissolve = 0`). Limita el sonido de aparición a uno cada 0,15 s (en la ronda 3 aparecen 60 a la vez) |
 | `TrashBullet` | Proyectil físico por tag. **Parece legado**: `TrashGun` usa hitscan |
 | `TrashGlow` | Halo aditivo detrás de cada basura del color de su material (`_Color`, el mismo que el modo que la destruye). Quad hijo con shader billboard `Regrowth/TrashGlow`, creado en `Start` (después del `Awake` de `TrashDissolveSpawner`, para no recibir su MPB). Materiales compartidos por color |
 
-**Herramientas de optimización (Editor)**: `Editor/TrashGlowSetup` (menú *Regrowth › Añadir glow a la basura*: añade `TrashGlow` a los prefabs de `Graphics/Prefabs/TRASH`) y `Editor/OceanPlantsSetup` (menú *Regrowth › Optimizar plantas del océano*: las 12 plantas más cercanas al jugador van a `OCEAN/DissolvePlants` con el material Dissolve; el resto a `OCEAN/StaticPlants` con el material opaco `… 1`; configura `appearRoots`/`toggleRoots` del `DissolveEvent`).
+**Herramientas de optimización (Editor)**: `Editor/TrashPrefabOptimizer` (menú *Regrowth › Optimizar prefabs de basura*: Rigidbody kinematic en cada basura, porque `TrashFloat` la mueve cada frame y un collider sin Rigidbody es estático para PhysX; y sin sombras), `Editor/TrashGlowSetup` (menú *Regrowth › Añadir glow a la basura*: añade `TrashGlow` a los prefabs de `Graphics/Prefabs/TRASH`) y `Editor/OceanPlantsSetup` (menú *Regrowth › Optimizar plantas del océano*: las 12 plantas más cercanas al jugador van a `OCEAN/DissolvePlants` con el material Dissolve; el resto a `OCEAN/StaticPlants` con el material opaco `… 1`; configura `appearRoots`/`toggleRoots` del `DissolveEvent`).
 
 **UI / debug**: `RoundHUDDisplay` (singleton, total/destruidas), `FPSDisplay`, `ControlsMenuToggle`, `NoiseScaleAnimator` (anima `_Noise_Scale` con MPB).
 
